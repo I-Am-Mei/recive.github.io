@@ -55,23 +55,29 @@ section { margin-bottom: 40px; }
 </section>
 
 <script>
-// Load data from localStorage or empty arrays
+// =========================
+// Load persistent data
+// =========================
 let users = JSON.parse(localStorage.getItem('users') || '[]');
 let members = JSON.parse(localStorage.getItem('members') || '[]');
 let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
 let timeOffs = JSON.parse(localStorage.getItem('timeOffs') || '[]');
 
-let currentUser = null;
+// =========================
+// Current user (from login.html)
+// =========================
+let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 
-// Function to log in a user
-function login(username) {
-    currentUser = users.find(u => u.username === username);
-    if(!currentUser) {
-        alert("User not found!");
+// =========================
+// On page load, show the right panel
+// =========================
+window.addEventListener('DOMContentLoaded', () => {
+    if(!currentUser){
+        alert("You must log in first!");
+        window.location.href = "login.html";
         return;
     }
-    
-    // Show panels based on role
+
     if(currentUser.role?.trim().toLowerCase() === 'head') {
         document.getElementById('headPanel').style.display = 'block';
     } else {
@@ -82,9 +88,11 @@ function login(username) {
     renderMembers();
     renderTasks();
     renderTimeOffs();
-}
-console.log(currentUser);
-// --- MEMBERS ---
+});
+
+// =========================
+// MEMBERS
+// =========================
 function renderMembers() {
     const activeDiv = document.getElementById('activeMembers');
     const inactiveDiv = document.getElementById('inactiveMembers');
@@ -93,12 +101,22 @@ function renderMembers() {
 
     const roles = ['Writer','Animator','Artist','Composer'];
     roles.forEach(role => {
-        const roleMembers = members.filter(m => m.role===role && !m.inactive);
+        const roleMembers = members.filter(m => m.role === role && !m.inactive);
         if(roleMembers.length > 0){
-            const roleHeader = document.createElement('h3'); roleHeader.textContent = role; activeDiv.appendChild(roleHeader);
+            const roleHeader = document.createElement('h3');
+            roleHeader.textContent = role;
+            activeDiv.appendChild(roleHeader);
+
             roleMembers.forEach(m => {
-                const card = document.createElement('div'); card.className='card';
-                card.innerHTML = `<strong>${m.name}</strong> <br> Role: ${m.role} <br> <button onclick="removeMember('${m.username}')">Remove</button>`;
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <strong>${m.name}</strong><br>
+                    Role: ${m.role}<br>
+                    ${currentUser.role?.toLowerCase() === 'head'
+                        ? `<button onclick="removeMember('${m.username}')">Remove</button>`
+                        : ''}
+                `;
                 activeDiv.appendChild(card);
             });
         }
@@ -112,7 +130,10 @@ function renderMembers() {
 }
 
 function addMember() {
-    if(currentUser.role !== 'Head') { alert("Only Head can add members."); return; }
+    if(currentUser.role?.toLowerCase() !== 'head') {
+        alert("Only Head can add members.");
+        return;
+    }
 
     const name = document.getElementById('newName').value.trim();
     const role = document.getElementById('newRole').value;
@@ -123,13 +144,17 @@ function addMember() {
     const username = name.toLowerCase().replace(/\s+/g,'') + Date.now();
     members.push({name, role, username, inactive});
     localStorage.setItem('members', JSON.stringify(members));
+
     document.getElementById('newName').value = '';
     document.getElementById('inactiveCheck').checked = false;
     renderMembers();
 }
 
 function removeMember(username) {
-    if(currentUser.role !== 'Head') { alert("Only Head can remove members."); return; }
+    if(currentUser.role?.toLowerCase() !== 'head') {
+        alert("Only Head can remove members.");
+        return;
+    }
 
     if(confirm('Are you sure you want to remove this member?')) {
         members = members.filter(m => m.username !== username);
@@ -138,34 +163,46 @@ function removeMember(username) {
     }
 }
 
-// --- TASKS ---
+// =========================
+// TASKS
+// =========================
 function renderTasks() {
     const taskDiv = document.getElementById('myTasks');
     if(!taskDiv) return;
     taskDiv.innerHTML = '';
+
     const myTasks = tasks.filter(t => t.assignedTo === currentUser.username);
     if(myTasks.length === 0) {
         taskDiv.textContent = 'No tasks assigned.';
         return;
     }
+
     myTasks.forEach(t => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.innerHTML = `<strong>${t.title}</strong><br>${t.description}<br>Status: ${t.status}`;
+        card.innerHTML = `
+            <strong>${t.title}</strong><br>
+            ${t.description}<br>
+            Status: ${t.status}
+        `;
         taskDiv.appendChild(card);
     });
 }
 
-// --- TIME OFFS ---
+// =========================
+// TIME OFF REQUESTS
+// =========================
 function renderTimeOffs() {
     const timeDiv = document.getElementById('myTimeOffs');
     if(!timeDiv) return;
     timeDiv.innerHTML = '';
+
     const myTimeOffs = timeOffs.filter(to => to.username === currentUser.username);
     if(myTimeOffs.length === 0) {
         timeDiv.textContent = 'No time off requests.';
         return;
     }
+
     myTimeOffs.forEach(to => {
         const card = document.createElement('div');
         card.className = 'card';
@@ -174,12 +211,15 @@ function renderTimeOffs() {
     });
 }
 
-// Example: log in dynamically (replace with your login form input)
-document.getElementById('loginBtn').addEventListener('click', () => {
-    const username = document.getElementById('loginUsername').value.trim();
-    login(username);
-});
+// =========================
+// LOGOUT (optional helper)
+// =========================
+function logout() {
+    localStorage.removeItem('currentUser');
+    window.location.href = "login.html";
+}
 </script>
+
 
 
 
