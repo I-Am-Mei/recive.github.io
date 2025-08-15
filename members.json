@@ -1,0 +1,15 @@
+[
+  {
+    "username": "charlie",
+    "name": "Charlie Smith",
+    "role": "Writer",
+    "inactive": false
+  },
+  {
+    "username": "diana",
+    "name": "Diana Lee",
+    "role": "Artist",
+    "inactive": true
+  }
+]
+

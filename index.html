@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Dashboard</title>
+<style>
+body { font-family: Arial; margin: 0; background: #eef2f7; }
+header { background: #007bff; color: white; padding: 20px; text-align: center; font-size: 24px; }
+.container { display: flex; flex-wrap: wrap; padding: 20px; justify-content: space-around; }
+.card { background: white; border-radius: 10px; padding: 20px; margin: 10px; flex: 1 1 220px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.2s; }
+.card:hover { transform: scale(1.02); }
+.inactive-box { background: #ffdede; border-radius: 10px; padding: 20px; margin: 20px; }
+input, select, textarea { width: 100%; padding: 10px; margin: 6px 0; border-radius: 5px; border: 1px solid #ccc; }
+button { padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 6px; }
+button:hover { background: #0056b3; }
+h3 { margin-top: 0; font-size: 18px; }
+section { margin-bottom: 40px; }
+.time-off-box { background: #fff7cc; padding: 12px; border-radius: 10px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Project Dashboard - Team Management</h1>
+</header>
+
+<div id="headPanel" style="padding:20px; display:none; border-bottom: 2px solid #ccc;">
+    <h2>Add New Member</h2>
+    <input type="text" id="newName" placeholder="Enter Member Name">
+    <select id="newRole">
+        <option value="Writer">Writer</option>
+        <option value="Animator">Animator</option>
+        <option value="Artist">Artist</option>
+        <option value="Composer">Composer</option>
+    </select>
+    <label><input type="checkbox" id="inactiveCheck"> Inactive</label>
+    <button onclick="addMember()">Add Member</button>
+
+    <h2>Pending Time-Off Requests</h2>
+    <div id="timeOffRequests"></div>
+</div>
+
+<section id="tasksSection" style="padding:20px;">
+    <h2>My Tasks</h2>
+    <div id="myTasks"></div>
+</section>
+
+<section style="padding:20px;">
+    <h2>All Members Overview</h2>
+    <div class="container" id="activeMembers"></div>
+
+    <h2>Inactive Members</h2>
+    <div class="inactive-box" id="inactiveMembers"></div>
+</section>
+
+<script>
+// Load data from localStorage or empty arrays
+let users = JSON.parse(localStorage.getItem('users') || '[]');
+let members = JSON.parse(localStorage.getItem('members') || '[]');
+let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+let timeOffs = JSON.parse(localStorage.getItem('timeOffs') || '[]');
+
+let currentUser = null;
+
+// Function to log in a user
+function login(username) {
+    currentUser = users.find(u => u.username === username);
+    if(!currentUser) {
+        alert("User not found!");
+        return;
+    }
+    
+    // Show panels based on role
+    if(currentUser.role?.trim().toLowerCase() === 'head') {
+        document.getElementById('headPanel').style.display = 'block';
+    } else {
+        document.getElementById('workerPanel').style.display = 'block';
+        document.getElementById('workerWelcome').textContent = `Welcome, ${currentUser.name}!`;
+    }
+
+    renderMembers();
+    renderTasks();
+    renderTimeOffs();
+}
+console.log(currentUser);
+// --- MEMBERS ---
+function renderMembers() {
+    const activeDiv = document.getElementById('activeMembers');
+    const inactiveDiv = document.getElementById('inactiveMembers');
+    activeDiv.innerHTML = '';
+    inactiveDiv.innerHTML = '';
+
+    const roles = ['Writer','Animator','Artist','Composer'];
+    roles.forEach(role => {
+        const roleMembers = members.filter(m => m.role===role && !m.inactive);
+        if(roleMembers.length > 0){
+            const roleHeader = document.createElement('h3'); roleHeader.textContent = role; activeDiv.appendChild(roleHeader);
+            roleMembers.forEach(m => {
+                const card = document.createElement('div'); card.className='card';
+                card.innerHTML = `<strong>${m.name}</strong> <br> Role: ${m.role} <br> <button onclick="removeMember('${m.username}')">Remove</button>`;
+                activeDiv.appendChild(card);
+            });
+        }
+    });
+
+    members.filter(m => m.inactive).forEach(m => {
+        const div = document.createElement('div');
+        div.textContent = `${m.name} (${m.role})`;
+        inactiveDiv.appendChild(div);
+    });
+}
+
+function addMember() {
+    if(currentUser.role !== 'Head') { alert("Only Head can add members."); return; }
+
+    const name = document.getElementById('newName').value.trim();
+    const role = document.getElementById('newRole').value;
+    const inactive = document.getElementById('inactiveCheck').checked;
+
+    if(!name) { alert('Please enter a name'); return; }
+
+    const username = name.toLowerCase().replace(/\s+/g,'') + Date.now();
+    members.push({name, role, username, inactive});
+    localStorage.setItem('members', JSON.stringify(members));
+    document.getElementById('newName').value = '';
+    document.getElementById('inactiveCheck').checked = false;
+    renderMembers();
+}
+
+function removeMember(username) {
+    if(currentUser.role !== 'Head') { alert("Only Head can remove members."); return; }
+
+    if(confirm('Are you sure you want to remove this member?')) {
+        members = members.filter(m => m.username !== username);
+        localStorage.setItem('members', JSON.stringify(members));
+        renderMembers();
+    }
+}
+
+// --- TASKS ---
+function renderTasks() {
+    const taskDiv = document.getElementById('myTasks');
+    if(!taskDiv) return;
+    taskDiv.innerHTML = '';
+    const myTasks = tasks.filter(t => t.assignedTo === currentUser.username);
+    if(myTasks.length === 0) {
+        taskDiv.textContent = 'No tasks assigned.';
+        return;
+    }
+    myTasks.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<strong>${t.title}</strong><br>${t.description}<br>Status: ${t.status}`;
+        taskDiv.appendChild(card);
+    });
+}
+
+// --- TIME OFFS ---
+function renderTimeOffs() {
+    const timeDiv = document.getElementById('myTimeOffs');
+    if(!timeDiv) return;
+    timeDiv.innerHTML = '';
+    const myTimeOffs = timeOffs.filter(to => to.username === currentUser.username);
+    if(myTimeOffs.length === 0) {
+        timeDiv.textContent = 'No time off requests.';
+        return;
+    }
+    myTimeOffs.forEach(to => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.textContent = `Date: ${to.date}, Reason: ${to.reason}, Status: ${to.status}`;
+        timeDiv.appendChild(card);
+    });
+}
+
+// Example: log in dynamically (replace with your login form input)
+document.getElementById('loginBtn').addEventListener('click', () => {
+    const username = document.getElementById('loginUsername').value.trim();
+    login(username);
+});
+</script>
+
+
+
+</body>
+</html>
+
