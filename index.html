@@ -25,6 +25,7 @@ section { margin-bottom: 40px; }
     <h1>Project Dashboard - Team Management</h1>
 </header>
 
+<!-- Head-only panel -->
 <div id="headPanel" style="padding:20px; display:none; border-bottom: 2px solid #ccc;">
     <h2>Add New Member</h2>
     <input type="text" id="newName" placeholder="Enter Member Name">
@@ -39,6 +40,13 @@ section { margin-bottom: 40px; }
 
     <h2>Pending Time-Off Requests</h2>
     <div id="timeOffRequests"></div>
+</div>
+
+<!-- Worker-only panel -->
+<div id="workerPanel" style="padding:20px; display:none; border-bottom: 2px solid #ccc;">
+    <h2 id="workerWelcome"></h2>
+    <h3>My Time Off Requests</h3>
+    <div id="myTimeOffs"></div>
 </div>
 
 <section id="tasksSection" style="padding:20px;">
@@ -219,9 +227,6 @@ function logout() {
     window.location.href = "login.html";
 }
 </script>
-
-
-
 
 </body>
 </html>
