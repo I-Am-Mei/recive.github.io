@@ -26,38 +26,40 @@ section { margin-bottom: 40px; }
 </header>
 
 <!-- Panel for Heads -->
-<div id="headPanel" style="padding:20px; display:none; border-bottom: 2px solid #ccc;">
-    <h2>Add New Member</h2>
-    <input type="text" id="newName" placeholder="Enter Member Name">
+<div id="headPanel" style="display:none;">
+    <h2>Head Dashboard</h2>
+    <h3>Add Member</h3>
+    <input id="newName" placeholder="Name">
     <select id="newRole">
-        <option value="Writer">Writer</option>
-        <option value="Animator">Animator</option>
-        <option value="Artist">Artist</option>
-        <option value="Composer">Composer</option>
-        <option value="Head">Head</option>
+        <option>Writer</option>
+        <option>Animator</option>
+        <option>Artist</option>
+        <option>Composer</option>
     </select>
-    <label><input type="checkbox" id="inactiveCheck"> Inactive</label>
-    <button onclick="addMember()">Add Member</button>
-    <div id="newPasswordDisplay" style="margin-top:10px; color:darkred; font-weight:bold;"></div>
+    <button onclick="addMember()">Add</button>
 
-    <h2>Assign Task</h2>
-    <input type="text" id="taskTitle" placeholder="Task Title">
-    <textarea id="taskDesc" placeholder="Task Description"></textarea>
-    <select id="taskAssignee"></select>
-    <button onclick="assignTask()">Assign Task</button>
+    <h3>Assign Task</h3>
+    <input id="taskTitle" placeholder="Task title">
+    <input id="taskDescription" placeholder="Description">
+    <select id="assignTo"></select>
+    <button onclick="assignTask()">Assign</button>
 
-    <h2>Pending Time-Off Requests</h2>
-    <div id="timeOffRequests"></div>
+    <div id="credentialsList" style="display:none;"></div>
 </div>
 
 <!-- Panel for Workers -->
-<div id="workerPanel" style="padding:20px; display:none; border-bottom:2px solid #ccc;">
-    <h2 id="workerWelcome">Welcome!</h2>
+<div id="workerPanel" style="display:none;">
+    <h2 id="workerWelcome"></h2>
+    <div id="myTasks"></div>
+
     <h3>Request Time Off</h3>
     <input type="date" id="timeOffDate">
     <input type="text" id="timeOffReason" placeholder="Reason">
-    <button onclick="requestTimeOff()">Submit Request</button>
+    <button onclick="requestTimeOff()">Request</button>
+
+    <div id="myTimeOffs"></div>
 </div>
+
 
 <section id="tasksSection" style="padding:20px;">
     <h2>My Tasks</h2>
@@ -73,29 +75,32 @@ section { margin-bottom: 40px; }
 </section>
 
 <script>
-// =========================
-// Persistent storage
-// =========================
+// Load from localStorage
 let users = JSON.parse(localStorage.getItem('users') || '[]');
 let members = JSON.parse(localStorage.getItem('members') || '[]');
 let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
 let timeOffs = JSON.parse(localStorage.getItem('timeOffs') || '[]');
-let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 
-// =========================
-// On page load
-// =========================
-window.addEventListener('DOMContentLoaded', () => {
-    if(!currentUser){
-        alert("You must log in first!");
-        window.location.href = "login.html";
+let currentUser = null;
+
+// Utility: random password
+function generatePassword(length = 8) {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    return Array.from({length}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+// Login
+function login(username, password) {
+    currentUser = users.find(u => u.username === username && u.password === password);
+    if(!currentUser) {
+        alert("Invalid login!");
         return;
     }
-
-    if(currentUser.role?.trim().toLowerCase() === 'head') {
+    
+    if(currentUser.role.toLowerCase() === 'head') {
         document.getElementById('headPanel').style.display = 'block';
-        updateAssigneeDropdown();
-        renderTimeOffRequests();
+        document.getElementById('credentialsList').style.display = 'block'; // Only visible to heads
+        renderCredentials();
     } else {
         document.getElementById('workerPanel').style.display = 'block';
         document.getElementById('workerWelcome').textContent = `Welcome, ${currentUser.name}!`;
@@ -104,203 +109,139 @@ window.addEventListener('DOMContentLoaded', () => {
     renderMembers();
     renderTasks();
     renderTimeOffs();
-});
+}
 
-// =========================
-// MEMBERS
-// =========================
+// --- MEMBERS ---
 function renderMembers() {
     const activeDiv = document.getElementById('activeMembers');
-    const inactiveDiv = document.getElementById('inactiveMembers');
     activeDiv.innerHTML = '';
-    inactiveDiv.innerHTML = '';
 
-    const roles = ['Writer','Animator','Artist','Composer','Head'];
-    roles.forEach(role => {
-        const roleMembers = members.filter(m => m.role === role && !m.inactive);
-        if(roleMembers.length > 0){
-            const roleHeader = document.createElement('h3');
-            roleHeader.textContent = role;
-            activeDiv.appendChild(roleHeader);
-
-            roleMembers.forEach(m => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <strong>${m.name}</strong><br>
-                    Role: ${m.role}<br>
-                    ${currentUser.role?.toLowerCase() === 'head'
-                        ? `<button onclick="removeMember('${m.username}')">Remove</button>`
-                        : ''}
-                `;
-                activeDiv.appendChild(card);
-            });
+    members.forEach(m => {
+        const card = document.createElement('div'); 
+        card.className='card';
+        card.innerHTML = `<strong>${m.name}</strong> <br> Role: ${m.role}`;
+        if(currentUser.role.toLowerCase() === 'head'){
+            card.innerHTML += `<br><button onclick="removeMember('${m.username}')">Remove</button>`;
         }
-    });
-
-    members.filter(m => m.inactive).forEach(m => {
-        const div = document.createElement('div');
-        div.textContent = `${m.name} (${m.role})`;
-        inactiveDiv.appendChild(div);
+        activeDiv.appendChild(card);
     });
 }
 
 function addMember() {
-    if(currentUser.role?.toLowerCase() !== 'head') {
-        alert("Only Head can add members.");
-        return;
-    }
+    if(currentUser.role.toLowerCase() !== 'head') { alert("Only Head can add members."); return; }
 
     const name = document.getElementById('newName').value.trim();
     const role = document.getElementById('newRole').value;
-    const inactive = document.getElementById('inactiveCheck').checked;
     if(!name) { alert('Please enter a name'); return; }
 
     const username = name.toLowerCase().replace(/\s+/g,'') + Date.now();
-    const password = Math.random().toString(36).slice(-8); // simple random password
+    const password = generatePassword();
 
-    members.push({name, role, username, inactive});
-    users.push({username, password, role, name});
+    const member = {name, role, username, inactive: false};
+    members.push(member);
+
+    const user = {username, password, role: "Member", name};
+    users.push(user);
+
     localStorage.setItem('members', JSON.stringify(members));
     localStorage.setItem('users', JSON.stringify(users));
-
+    
     document.getElementById('newName').value = '';
-    document.getElementById('inactiveCheck').checked = false;
-    document.getElementById('newPasswordDisplay').textContent = `Password for ${name}: ${password}`;
-
     renderMembers();
-    updateAssigneeDropdown();
+    renderCredentials();
 }
 
 function removeMember(username) {
-    if(currentUser.role?.toLowerCase() !== 'head') return;
+    if(currentUser.role.toLowerCase() !== 'head') { alert("Only Head can remove members."); return; }
     if(confirm('Remove this member?')) {
         members = members.filter(m => m.username !== username);
         users = users.filter(u => u.username !== username);
         localStorage.setItem('members', JSON.stringify(members));
         localStorage.setItem('users', JSON.stringify(users));
         renderMembers();
-        updateAssigneeDropdown();
+        renderCredentials();
     }
 }
 
-// =========================
-// TASKS
-// =========================
-function updateAssigneeDropdown() {
-    const select = document.getElementById('taskAssignee');
-    if(!select) return;
-    select.innerHTML = '';
-    members.filter(m => !m.inactive).forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.username;
-        opt.textContent = m.name;
-        select.appendChild(opt);
-    });
-}
-
-function assignTask() {
-    const title = document.getElementById('taskTitle').value.trim();
-    const description = document.getElementById('taskDesc').value.trim();
-    const assignedTo = document.getElementById('taskAssignee').value;
-
-    if(!title || !assignedTo) { alert("Fill in task details"); return; }
-
-    tasks.push({title, description, assignedTo, status:'Pending'});
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-
-    document.getElementById('taskTitle').value = '';
-    document.getElementById('taskDesc').value = '';
-    renderTasks();
-}
-
+// --- TASKS ---
 function renderTasks() {
     const taskDiv = document.getElementById('myTasks');
     if(!taskDiv) return;
     taskDiv.innerHTML = '';
-
     const myTasks = tasks.filter(t => t.assignedTo === currentUser.username);
     if(myTasks.length === 0) {
         taskDiv.textContent = 'No tasks assigned.';
         return;
     }
-
     myTasks.forEach(t => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.innerHTML = `
-            <strong>${t.title}</strong><br>
-            ${t.description}<br>
-            Status: ${t.status}
-        `;
+        card.innerHTML = `<strong>${t.title}</strong><br>${t.description}<br>Status: ${t.status}`;
         taskDiv.appendChild(card);
     });
 }
 
-// =========================
-// TIME OFF
-// =========================
-function requestTimeOff() {
-    const date = document.getElementById('timeOffDate').value;
-    const reason = document.getElementById('timeOffReason').value.trim();
-    if(!date || !reason) { alert("Enter date and reason"); return; }
+function assignTask() {
+    const title = document.getElementById('taskTitle').value.trim();
+    const description = document.getElementById('taskDescription').value.trim();
+    const assignedTo = document.getElementById('assignTo').value;
 
-    timeOffs.push({username: currentUser.username, date, reason, status:'Pending'});
-    localStorage.setItem('timeOffs', JSON.stringify(timeOffs));
+    if(!title || !assignedTo) { alert("Please fill task details."); return; }
 
-    document.getElementById('timeOffDate').value = '';
-    document.getElementById('timeOffReason').value = '';
-    renderTimeOffs();
+    tasks.push({title, description, assignedTo, status: "Pending"});
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskDescription').value = '';
+    renderTasks();
 }
 
+// --- TIME OFF ---
 function renderTimeOffs() {
-    const timeDiv = document.getElementById('myTimeOffs') || document.createElement('div');
-    timeDiv.id = 'myTimeOffs';
-    document.getElementById('workerPanel')?.appendChild(timeDiv);
-    timeDiv.innerHTML = '<h3>My Time Off Requests</h3>';
-
+    const timeDiv = document.getElementById('myTimeOffs');
+    if(!timeDiv) return;
+    timeDiv.innerHTML = '';
     const myTimeOffs = timeOffs.filter(to => to.username === currentUser.username);
     if(myTimeOffs.length === 0) {
-        timeDiv.innerHTML += 'No time off requests.';
+        timeDiv.textContent = 'No time off requests.';
         return;
     }
-
     myTimeOffs.forEach(to => {
         const card = document.createElement('div');
-        card.className = 'time-off-box';
+        card.className = 'card';
         card.textContent = `Date: ${to.date}, Reason: ${to.reason}, Status: ${to.status}`;
         timeDiv.appendChild(card);
     });
 }
 
-function renderTimeOffRequests() {
-    const div = document.getElementById('timeOffRequests');
-    div.innerHTML = '';
-    timeOffs.forEach((to, idx) => {
-        const user = members.find(m => m.username === to.username);
-        const card = document.createElement('div');
-        card.className = 'time-off-box';
-        card.innerHTML = `
-            <strong>${user?.name || to.username}</strong> requested off on ${to.date}<br>
-            Reason: ${to.reason}<br>
-            Status: ${to.status}<br>
-            <button onclick="approveTimeOff(${idx})">Approve</button>
-            <button onclick="denyTimeOff(${idx})">Deny</button>
-        `;
-        div.appendChild(card);
+function requestTimeOff() {
+    const date = document.getElementById('timeOffDate').value;
+    const reason = document.getElementById('timeOffReason').value.trim();
+    if(!date || !reason) { alert("Fill date and reason."); return; }
+
+    timeOffs.push({username: currentUser.username, date, reason, status: "Pending"});
+    localStorage.setItem('timeOffs', JSON.stringify(timeOffs));
+    renderTimeOffs();
+    document.getElementById('timeOffDate').value = '';
+    document.getElementById('timeOffReason').value = '';
+}
+
+// --- HEAD CREDENTIALS VIEW ---
+function renderCredentials() {
+    const credDiv = document.getElementById('credentialsList');
+    credDiv.innerHTML = '<h3>User Credentials</h3>';
+    users.forEach(u => {
+        credDiv.innerHTML += `<div><strong>${u.name}</strong> (${u.role})<br>Username: ${u.username}, Password: ${u.password}</div><hr>`;
     });
 }
 
-function approveTimeOff(idx) {
-    timeOffs[idx].status = 'Approved';
-    localStorage.setItem('timeOffs', JSON.stringify(timeOffs));
-    renderTimeOffRequests();
-}
-function denyTimeOff(idx) {
-    timeOffs[idx].status = 'Denied';
-    localStorage.setItem('timeOffs', JSON.stringify(timeOffs));
-    renderTimeOffRequests();
-}
+// --- Login button ---
+document.getElementById('loginBtn').addEventListener('click', () => {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    login(username, password);
+});
 </script>
+
 </body>
 </html>
