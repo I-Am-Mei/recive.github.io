@@ -140,16 +140,22 @@ async function assignTask() {
 
 // --- TIME OFFS ---
 async function renderTimeOffs() {
-    const { data: timeOffs } = await supabase.from('timeoffs').select('*');
+    const { data: timeOffs, error } = await supabase.from('timeoffs').select('*');
+    if (error) {
+        console.error('Error fetching time-offs:', error);
+        return;
+    }
+
     const timeOffDiv = document.getElementById('timeOffRequests');
-    if(!timeOffDiv) return;
+    if (!timeOffDiv) return;
+
     timeOffDiv.innerHTML = '';
 
-    const relevantRequests = currentUser.role.toLowerCase() === 'head' 
-        ? timeOffs 
+    const relevantRequests = currentUser.role.toLowerCase() === 'head'
+        ? timeOffs
         : timeOffs.filter(t => t.username === currentUser.username);
 
-    if(relevantRequests.length === 0) {
+    if (relevantRequests.length === 0) {
         timeOffDiv.textContent = 'No time-off requests.';
         return;
     }
@@ -157,12 +163,18 @@ async function renderTimeOffs() {
     relevantRequests.forEach(t => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.innerHTML = `<strong>${t.name}</strong><br>From: ${t.startDate} To: ${t.endDate}<br>Status: ${t.status}`;
-        if(currentUser.role.toLowerCase() === 'head' && t.status === 'Pending') {
-            card.innerHTML += `<br>
+
+        let cardContent = `<strong>${t.name}</strong><br>
+                           From: ${t.startDate} To: ${t.endDate}<br>
+                           Status: ${t.status}`;
+
+        if (currentUser.role.toLowerCase() === 'head' && t.status === 'Pending') {
+            cardContent += `<br>
                 <button onclick="updateTimeOff('${t.username}', '${t.startDate}', 'Approved')">Approve</button>
                 <button onclick="updateTimeOff('${t.username}', '${t.startDate}', 'Denied')">Deny</button>`;
         }
+
+        card.innerHTML = cardContent;
         timeOffDiv.appendChild(card);
     });
 }
@@ -171,18 +183,37 @@ async function requestTimeOff() {
     const startDate = document.getElementById('timeOffStart').value;
     const endDate = document.getElementById('timeOffEnd').value;
 
-    if(!startDate || !endDate) { alert("Please select dates."); return; }
+    if (!startDate || !endDate) {
+        alert("Please select dates.");
+        return;
+    }
 
-    await supabase.from('timeoffs').insert([{username: currentUser.username, name: currentUser.name, startDate, endDate, status: "Pending"}]);
+    const { error } = await supabase.from('timeoffs').insert([{
+        username: currentUser.username,
+        name: currentUser.name,
+        startDate,
+        endDate,
+        status: "Pending"
+    }]);
+
+    if (error) {
+        console.error('Error requesting time off:', error);
+        return;
+    }
 
     renderTimeOffs();
 }
 
 async function updateTimeOff(username, startDate, status) {
-    await supabase.from('timeoffs')
-        .update({status})
+    const { error } = await supabase.from('timeoffs')
+        .update({ status })
         .eq('username', username)
         .eq('startDate', startDate);
+
+    if (error) {
+        console.error('Error updating time off:', error);
+        return;
+    }
 
     renderTimeOffs();
 }
