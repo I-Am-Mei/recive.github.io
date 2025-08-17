@@ -26,34 +26,34 @@
     <button onclick="logout()">Logout</button>
   </div>
   
-  <!-- Supabase JS v2 UMD CDN -->
+<!-- Supabase JS v2 UMD CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
   <script>
-    // Initialize Supabase client using UMD global
+    // Initialize Supabase client using the UMD global
     const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
-    const supabase = supabaseJs.createClient(supabaseUrl, supabaseKey);
 
-    document.getElementById('firstLoginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+    // Use capital S: Supabase, not supabaseJs
+    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
-      // Attempt login
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
+    // Example usage: fetching user session
+    async function checkSession() {
+      const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
-        document.getElementById('message').textContent = 'Error: ' + error.message;
+        document.getElementById('message').textContent = 'Error fetching session: ' + error.message;
         return;
       }
 
-      document.getElementById('message').textContent = 'Login successful! Redirecting...';
-      window.location.href = 'dashboard.html';
-    });
+      if (session) {
+        document.getElementById('message').textContent = 'Logged in as: ' + session.user.email;
+      } else {
+        document.getElementById('message').textContent = 'Not logged in.';
+      }
+    }
+
+    // Call the function once page loads
+    checkSession();
   </script>
 </body>
 </html>
