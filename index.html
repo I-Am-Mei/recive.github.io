@@ -4,7 +4,79 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Project Dashboard</title>
-<link rel="stylesheet" href="style.css">
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background: #2c3e50;
+    color: #fff;
+    padding: 15px 20px;
+    text-align: center;
+}
+
+h1, h2, h3 {
+    margin: 5px 0;
+}
+
+section {
+    background: #fff;
+    margin: 15px auto;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 600px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+input, select, textarea, button {
+    padding: 8px;
+    margin: 5px 0;
+    width: 100%;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+button {
+    background: #3498db;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #2980b9;
+}
+
+.card {
+    background: #fff;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 10px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 100px auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.time-off-box {
+    background: #fff7cc;
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+</style>
 </head>
 <body>
 
@@ -12,54 +84,58 @@
     <h1>Project Dashboard - Team Management</h1>
 </header>
 
-<!-- Panel for Heads -->
+<!-- Head Dashboard -->
 <div id="headPanel" style="display:none;">
-    <h2>Head Dashboard</h2>
-    
-    <h3>Add Member</h3>
-    <input id="newName" placeholder="Name">
-    <select id="newRole">
-        <option>Writer</option>
-        <option>Animator</option>
-        <option>Artist</option>
-        <option>Composer</option>
-    </select>
-    <button id="addMemberBtn">Add</button>
+    <section>
+        <h2>Head Dashboard</h2>
+        <h3>Add Member</h3>
+        <input id="newName" placeholder="Name">
+        <select id="newRole">
+            <option>Writer</option>
+            <option>Animator</option>
+            <option>Designer</option>
+        </select>
+        <button onclick="addMember()">Add Member</button>
+    </section>
 
-    <h3>Assign Task</h3>
-    <input id="taskTitle" placeholder="Task title">
-    <input id="taskDescription" placeholder="Description">
-    <select id="assignTo"></select>
-    <button id="assignTaskBtn">Assign</button>
+    <section>
+        <h3>Active Members</h3>
+        <div id="activeMembers"></div>
+    </section>
 
-    <div id="credentialsList" style="display:none;"></div>
+    <section>
+        <h3>Assign Task</h3>
+        <input id="taskTitle" placeholder="Task Title">
+        <textarea id="taskDescription" placeholder="Task Description"></textarea>
+        <select id="assignTo"></select>
+        <button onclick="assignTask()">Assign Task</button>
+    </section>
+
+    <section>
+        <h3>Member Credentials</h3>
+        <div id="credentialsList"></div>
+    </section>
 </div>
 
-<!-- Panel for Workers -->
+<!-- Worker Dashboard -->
 <div id="workerPanel" style="display:none;">
-    <h2 id="workerWelcome"></h2>
-    
+    <section>
+        <h2 id="workerWelcome"></h2>
+    </section>
+
     <section>
         <h3>My Tasks</h3>
         <div id="workerTasks"></div>
     </section>
 
-    <h3>Request Time Off</h3>
-    <input type="date" id="timeOffDate">
-    <input type="text" id="timeOffReason" placeholder="Reason">
-    <button id="requestTimeOffBtn">Request</button>
-
-    <div id="myTimeOffs"></div>
+    <section>
+        <h3>Request Time Off</h3>
+        <input type="date" id="timeOffDate">
+        <input type="text" id="timeOffReason" placeholder="Reason">
+        <button onclick="requestTimeOff()">Request Time Off</button>
+        <div id="myTimeOffs"></div>
+    </section>
 </div>
 
-<section style="padding:20px;">
-    <h2>All Members Overview</h2>
-    <div class="container" id="activeMembers"></div>
-
-    <h2>Inactive Members</h2>
-    <div class="inactive-box" id="inactiveMembers"></div>
-</section>
-
-<script src="script.js"></script>
 </body>
 </html>
