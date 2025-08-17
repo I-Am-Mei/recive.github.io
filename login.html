@@ -14,29 +14,42 @@
 </form>
 <p id="message"></p>
 
-<!-- Supabase JS v2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-  // Initialize Supabase client
   const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
   const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
-  document.getElementById('firstLoginForm').addEventListener('submit', async (e) => {
+  const form = document.getElementById('firstLoginForm');
+  const msg = document.getElementById('message');
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
-    // Attempt login
-    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    // Try to sign in first
+    let { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (loginError) {
-      document.getElementById('message').textContent = 'Error: ' + loginError.message;
-      return;
+      // If user does not exist, create them
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+
+      if (signUpError) {
+        msg.textContent = 'Error: ' + signUpError.message;
+        return;
+      }
+
+      msg.textContent = 'User created! Logging in...';
+
+      // After signup, log them in
+      ({ data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password }));
+
+      if (loginError) {
+        msg.textContent = 'Error logging in: ' + loginError.message;
+        return;
+      }
     }
 
     // Login successful
@@ -45,3 +58,4 @@
 </script>
 </body>
 </html>
+
