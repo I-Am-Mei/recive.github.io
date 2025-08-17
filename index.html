@@ -5,68 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Project Dashboard</title>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f0f2f5;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #2c3e50;
-      color: #fff;
-      padding: 15px 20px;
-      text-align: center;
-    }
-    h1, h2, h3 {
-      margin: 5px 0;
-    }
-    section {
-      background: #fff;
-      margin: 15px auto;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 600px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    input, select, textarea, button {
-      padding: 8px;
-      margin: 5px 0;
-      width: 100%;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-    button {
-      background: #3498db;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #2980b9;
-    }
-    .card {
-      background: #fff;
-      padding: 15px;
-      margin: 10px 0;
-      border-radius: 10px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-    }
-    .login-container {
-      max-width: 400px;
-      margin: 100px auto;
-      padding: 30px;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    .time-off-box {
-      background: #fff7cc;
-      padding: 12px;
-      border-radius: 10px;
-      margin-top: 10px;
-    }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+    header { background: #2c3e50; color: #fff; padding: 15px 20px; text-align: center; }
+    h1, h2, h3 { margin: 5px 0; }
+    section { background: #fff; margin: 15px auto; padding: 20px; border-radius: 10px; max-width: 600px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, select, textarea, button { padding: 8px; margin: 5px 0; width: 100%; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+    button { background: #3498db; color: #fff; border: none; cursor: pointer; }
+    button:hover { background: #2980b9; }
+    .card { background: #fff; padding: 15px; margin: 10px 0; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .login-container { max-width: 400px; margin: 100px auto; padding: 30px; background: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; }
+    .time-off-box { background: #fff7cc; padding: 12px; border-radius: 10px; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -77,10 +25,10 @@
   <!-- LOGIN -->
   <div class="login-container" id="loginPanel">
     <h2>Login</h2>
-    <input type="email" id="loginEmail" placeholder="Email">
-    <input type="password" id="loginPassword" placeholder="Password">
+    <input type="text" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
     <button onclick="handleLogin()">Login</button>
-    <p id="loginMessage" style="color:red;"></p>
+    <p id="message" style="color:red;"></p>
   </div>
 
   <!-- Head Dashboard -->
@@ -96,10 +44,12 @@
       </select>
       <button onclick="addMember()">Add Member</button>
     </section>
+
     <section>
       <h3>Active Members</h3>
       <div id="activeMembers"></div>
     </section>
+
     <section>
       <h3>Assign Task</h3>
       <input id="taskTitle" placeholder="Task Title">
@@ -107,6 +57,7 @@
       <select id="assignTo"></select>
       <button onclick="assignTask()">Assign Task</button>
     </section>
+
     <section>
       <h3>Member Credentials</h3>
       <div id="credentialsList"></div>
@@ -134,55 +85,43 @@
   <!-- Supabase JS v2 UMD -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
-    // Initialize Supabase
     const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
-    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+    const supabase = supabaseJs.createClient(supabaseUrl, supabaseKey);
 
     async function handleLogin() {
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        document.getElementById("loginMessage").textContent = "Error: " + error.message;
+        document.getElementById('message').textContent = "Error: " + error.message;
         return;
       }
 
-      // Example: check if this user is the head
-      if (email === "limei@tutamail.com") {
-        document.getElementById("loginPanel").style.display = "none";
-        document.getElementById("headPanel").style.display = "block";
-      } else {
-        document.getElementById("loginPanel").style.display = "none";
-        document.getElementById("workerPanel").style.display = "block";
-        document.getElementById("workerWelcome").textContent = "Welcome " + email;
+      // fetch role from users table
+      const { data: userRow, error: roleError } = await supabase
+        .from('users')
+        .select('role, username')
+        .eq('id', data.user.id)
+        .single();
+
+      if (roleError || !userRow) {
+        document.getElementById('message').textContent = "Login failed: could not fetch role";
+        return;
       }
-    }
 
-    // Example stubs for dashboard functionality
-    function addMember() {
-      const name = document.getElementById("newName").value;
-      const role = document.getElementById("newRole").value;
-      const memberDiv = document.createElement("div");
-      memberDiv.className = "card";
-      memberDiv.textContent = `${name} - ${role}`;
-      document.getElementById("activeMembers").appendChild(memberDiv);
-    }
+      document.getElementById('loginPanel').style.display = "none";
 
-    function assignTask() {
-      alert("Assign Task clicked!");
-    }
-
-    function requestTimeOff() {
-      const date = document.getElementById("timeOffDate").value;
-      const reason = document.getElementById("timeOffReason").value;
-      const box = document.createElement("div");
-      box.className = "time-off-box";
-      box.textContent = `${date}: ${reason}`;
-      document.getElementById("myTimeOffs").appendChild(box);
+      if (userRow.role === "head") {
+        document.getElementById('headPanel').style.display = "block";
+      } else {
+        document.getElementById('workerPanel').style.display = "block";
+        document.getElementById('workerWelcome').textContent = "Welcome " + userRow.username;
+      }
     }
   </script>
 </body>
 </html>
+
