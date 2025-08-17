@@ -113,7 +113,7 @@
 
       welcome.textContent = `Welcome, ${user.username}!`;
       roleEl.textContent = 'You are signed in.';
-      uidEl.textContent = user.is;
+      uidEl.textContent = user.id;
       unameEl.textContent = user.username;
       uroleEl.textContent = user.role;
       createdEl.textContent = user.created_at ? new Date(user.created_at).toLocaleString() : '—';
