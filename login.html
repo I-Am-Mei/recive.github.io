@@ -9,11 +9,12 @@
 <h1>Welcome to the Dashboard</h1>
 <p id="userInfo"></p>
 
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const supabaseUrl = 'https://YOUR_PROJECT.supabase.co';
-const supabaseKey = 'YOUR_ANON_KEY';
-const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 async function checkAuth() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -22,15 +23,14 @@ async function checkAuth() {
         // Not logged in, redirect to login
         window.location.href = 'login.html';
     } else {
-        // Logged in
         const user = session.user;
         document.getElementById('userInfo').textContent = `Logged in as: ${user.email}`;
     }
 }
 
-// Call on page load
 checkAuth();
 </script>
+
 </body>
 </html>
 
