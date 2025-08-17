@@ -106,6 +106,51 @@ button:hover {
     </section>
 </div>
 
-https://i-am-mei.github.io/recive.github.io/index.html
+<!-- Supabase JS v2 UMD CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <script>
+    // Initialize Supabase client using the UMD global
+    const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
+
+    // Use capital S: Supabase, not supabaseJs
+    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Example usage: fetching user session
+    async function checkSession() {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        document.getElementById('message').textContent = 'Error fetching session: ' + error.message;
+        return;
+      }
+
+      if (session) {
+        document.getElementById('message').textContent = 'Logged in as: ' + session.user.email;
+      } else {
+        document.getElementById('message').textContent = 'Not logged in.';
+      }
+    }
+      async function handleLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+    
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, username, password, role')
+          .eq('username', username)
+          .single();
+    
+        if (error || !data) {
+          document.getElementById('message').textContent = 'Invalid username or password.';
+          return;
+        }
+    
+        document.getElementById('message').textContent = 'Login successful!';
+        // Redirect or other logic here
+      }
+    // Call the function once page loads
+    checkSession();
+  </script>
 </body>
 </html>
