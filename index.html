@@ -107,21 +107,6 @@ button:hover {
 </div>
 
   <script>
-
-    // Example usage: fetching user session
-    async function checkSession() {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        document.getElementById('message').textContent = 'Error fetching session: ' + error.message;
-        return;
-      }
-
-      if (session) {
-        document.getElementById('message').textContent = 'Logged in as: ' + session.user.email;
-      } else {
-        document.getElementById('message').textContent = 'Not logged in.';
-      }
-    }
       async function handleLogin() {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
@@ -141,7 +126,7 @@ button:hover {
         // Redirect or other logic here
       }
     // Call the function once page loads
-    checkSession();
+    handleLogin();
   </script>
 </body>
 </html>
