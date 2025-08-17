@@ -3,45 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard</title>
+<title>First Login</title>
 </head>
 <body>
-<h1>Welcome to the Dashboard</h1>
-<p id="userInfo"></p>
+<h1>Welcome! Set Your Password</h1>
+<form id="firstLoginForm">
+  <input type="email" id="email" placeholder="Email" required><br>
+  <input type="password" id="password" placeholder="New Password" required><br>
+  <button type="submit">Set Password & Login</button>
+</form>
 <p id="message"></p>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
+const supabaseKey = 'YOUR_ANON_KEY';
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-async function checkAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
+document.getElementById('firstLoginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
 
-    if(!session){
-        // Not logged in, redirect to login page
-        window.location.href = 'login.html';
-        return;
-    }
+  // Log in user with temporary password
+  const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
-    // User is logged in
-    const user = session.user;
-    document.getElementById('userInfo').textContent = `Logged in as: ${user.email}`;
-}
+  if (loginError) {
+    // If first login, you might need to reset password or prompt magic link
+    document.getElementById('message').textContent = 'Error: ' + loginError.message;
+    return;
+  }
 
-// Optional: auto-login after signup (for first-time users)
-async function loginAfterSignup(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-        document.getElementById('message').textContent = 'Login failed: ' + error.message;
-    } else {
-        window.location.href = 'dashboard.html';
-    }
-}
-
-// Call on page load
-checkAuth();
+  // User logged in successfully
+  window.location.href = 'dashboard.html';
+});
 </script>
 </body>
 </html>
