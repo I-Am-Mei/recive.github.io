@@ -12,14 +12,17 @@ function generatePassword(length = 8) {
     return Array.from({length}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
 }
 
-// LOGIN (for testing purposes, you can set a default user)
-function login(username, password) {
+// LOGIN
+function handleLogin() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
     currentUser = users.find(u => u.username === username && u.password === password);
     if(!currentUser) { alert("Invalid login!"); return; }
 
+    document.getElementById('loginPanel').style.display = 'none';
+
     if(currentUser.role.toLowerCase() === 'head') {
         document.getElementById('headPanel').style.display = 'block';
-        document.getElementById('credentialsList').style.display = 'block';
         renderCredentials();
     } else {
         document.getElementById('workerPanel').style.display = 'block';
@@ -35,6 +38,8 @@ function login(username, password) {
 function renderMembers() {
     const activeDiv = document.getElementById('activeMembers');
     const assignSelect = document.getElementById('assignTo');
+    if(!activeDiv || !assignSelect) return;
+
     activeDiv.innerHTML = '';
     assignSelect.innerHTML = '';
 
@@ -93,7 +98,7 @@ function removeMember(username) {
 // --- TASKS ---
 function renderTasks() {
     const taskDiv = document.getElementById('workerTasks');
-    if(!taskDiv) return;
+    if(!taskDiv || !currentUser) return;
     taskDiv.innerHTML = '';
     const myTasks = tasks.filter(t => t.assignedTo === currentUser.username);
     if(myTasks.length === 0) {
@@ -118,28 +123,70 @@ function assignTask() {
     tasks.push({title, description, assignedTo, status: "Pending"});
     localStorage.setItem('tasks', JSON.stringify(tasks));
 
-    document.getElementById('taskTitle').value = '';
+    document.getElementById
+    ('taskTitle').value = '';
     document.getElementById('taskDescription').value = '';
     renderTasks();
 }
 
-// --- TIME OFF ---
+// --- TIME OFFS ---
 function renderTimeOffs() {
-    const timeDiv = document.getElementById('myTimeOffs');
-    if(!timeDiv) return;
-    timeDiv.innerHTML = '';
-    const myTimeOffs = timeOffs.filter(to => to.username === currentUser.username);
-    if(myTimeOffs.length === 0) {
-        timeDiv.textContent = 'No time off requests.';
+    const timeOffDiv = document.getElementById('timeOffRequests');
+    if(!timeOffDiv) return;
+    timeOffDiv.innerHTML = '';
+
+    const relevantRequests = currentUser.role.toLowerCase() === 'head' 
+        ? timeOffs 
+        : timeOffs.filter(t => t.username === currentUser.username);
+
+    if(relevantRequests.length === 0) {
+        timeOffDiv.textContent = 'No time-off requests.';
         return;
     }
-    myTimeOffs.forEach(to => {
+
+    relevantRequests.forEach(t => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.textContent = `Date: ${to.date}, Reason: ${to.reason}, Status: ${to.status}`;
-        timeDiv.appendChild(card);
+        card.innerHTML = `<strong>${t.name}</strong><br>From: ${t.startDate} To: ${t.endDate}<br>Status: ${t.status}`;
+        if(currentUser.role.toLowerCase() === 'head' && t.status === 'Pending') {
+            card.innerHTML += `<br>
+                <button onclick="updateTimeOff('${t.username}', '${t.startDate}', 'Approved')">Approve</button>
+                <button onclick="updateTimeOff('${t.username}', '${t.startDate}', 'Denied')">Deny</button>`;
+        }
+        timeOffDiv.appendChild(card);
     });
 }
 
 function requestTimeOff() {
-   
+    const startDate = document.getElementById('timeOffStart').value;
+    const endDate = document.getElementById('timeOffEnd').value;
+
+    if(!startDate || !endDate) { alert("Please select dates."); return; }
+
+    timeOffs.push({username: currentUser.username, name: currentUser.name, startDate, endDate, status: "Pending"});
+    localStorage.setItem('timeOffs', JSON.stringify(timeOffs));
+
+    renderTimeOffs();
+}
+
+function updateTimeOff(username, startDate, status) {
+    const request = timeOffs.find(t => t.username === username && t.startDate === startDate);
+    if(request) {
+        request.status = status;
+        localStorage.setItem('timeOffs', JSON.stringify(timeOffs));
+        renderTimeOffs();
+    }
+}
+
+// --- CREDENTIALS DISPLAY ---
+function renderCredentials() {
+    if(currentUser.role.toLowerCase() !== 'head') return;
+    const credDiv = document.getElementById('credentialsList');
+    if(!credDiv) return;
+    credDiv.innerHTML = '';
+    users.forEach(u => {
+        const p = document.createElement('p');
+        p.textContent = `Name: ${u.name}, Username: ${u.username}, Password: ${u.password}`;
+        credDiv.appendChild(p);
+    });
+}
