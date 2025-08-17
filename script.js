@@ -123,11 +123,13 @@ function assignTask() {
     tasks.push({title, description, assignedTo, status: "Pending"});
     localStorage.setItem('tasks', JSON.stringify(tasks));
 
-    document.getElementById
-    ('taskTitle').value = '';
+    // Clear input fields
+    document.getElementById('taskTitle').value = '';
     document.getElementById('taskDescription').value = '';
+    
     renderTasks();
 }
+
 
 // --- TIME OFFS ---
 function renderTimeOffs() {
