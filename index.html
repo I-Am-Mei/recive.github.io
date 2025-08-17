@@ -106,37 +106,22 @@ button:hover {
     </section>
 </div>
 
-  <script>
-async function handleLogin() {
+<script>
+function handleLogin() {
     const username = document.getElementById('loginUsername').value;
     const password = document.getElementById('loginPassword').value;
 
-    const { data, error } = await supabase
-        .from('users')
-        .select('id, username, password, role')
-        .eq('username', username)
-        .single();
-
-    if (error || !data || data.password !== password) {
-        document.getElementById('loginMessage').textContent = 'Invalid username or password.';
-        return;
-    }
-
-    document.getElementById('loginMessage').textContent = 'Login successful!';
-    // Show correct panel
-    if (data.role === 'Head') {
+    // Simple front-end login check (replace with real logic later)
+    if (username === "admin" && password === "123") {
+        document.getElementById('loginMessage').textContent = 'Login successful!';
         document.getElementById('loginPanel').style.display = 'none';
         document.getElementById('headPanel').style.display = 'block';
-        document.getElementById('headWelcome').textContent = `Welcome, ${data.username}`;
+        document.getElementById('headWelcome').textContent = `Welcome, ${username}`;
     } else {
-        document.getElementById('loginPanel').style.display = 'none';
-        document.getElementById('workerPanel').style.display = 'block';
-        document.getElementById('workerWelcome').textContent = `Welcome, ${data.username}`;
+        document.getElementById('loginMessage').textContent = 'Invalid username or password.';
     }
 }
+</script>
 
-    // Call the function once page loads
-    handleLogin();
-  </script>
 </body>
 </html>
