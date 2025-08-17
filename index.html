@@ -106,72 +106,58 @@ button:hover {
     </section>
 </div>
 
-<!-- Supabase -->
-<!-- Add Supabase UMD script at the top of your HTML -->
+<!-- Include Supabase UMD script first -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-
 <script>
-  // Initialize Supabase client
+  // Initialize Supabase client using the UMD global
   const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
-  const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  // Handle login form submit
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-
-    // Use Supabase Auth to sign in
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: username, // Use email or map username → email
-      password
-    });
-
-    if (error) {
-      document.getElementById('message').textContent = 'Error: ' + error.message;
-      return;
-    }
-
-    document.getElementById('message').textContent = 'Login successful!';
-
-    // Fetch additional user info from 'users' table
-    const { data: userData, error: userError } = await supabase
+  async function handleLogin(username, password) {
+    const { data, error } = await supabase
       .from('users')
-      .select('id, username, role')
-      .eq('email', username) // match email
+      .select('id, username, password, role')
+      .eq('username', username)
       .single();
 
-    if (userError || !userData) {
-      document.getElementById('message').textContent = 'Could not fetch user data.';
+    if (error || !data) {
+      document.getElementById('message').textContent = 'Invalid username or password.';
       return;
     }
 
-    localStorage.setItem('userId', userData.id);
-    localStorage.setItem('role', userData.role);
+    if (data.password !== password) {
+      document.getElementById('message').textContent = 'Invalid username or password.';
+      return;
+    }
 
-    // Hide login panel
+    localStorage.setItem('userId', data.id);
+    localStorage.setItem('role', data.role);
+
     document.getElementById('loginPanel').style.display = 'none';
-
-    // Show correct panel
-    if (userData.role === 'head') {
+    if (data.role === 'head') {
       document.getElementById('headPanel').style.display = 'block';
     } else {
       document.getElementById('workerPanel').style.display = 'block';
-      document.getElementById('workerWelcome').textContent = "Welcome " + userData.username;
+      document.getElementById('workerWelcome').textContent = "Welcome " + data.username;
     }
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    await handleLogin(username, password);
   });
 
-  // Logout function
   function logout() {
-    supabase.auth.signOut(); // Sign out from Supabase
     localStorage.clear();
     document.getElementById('headPanel').style.display = 'none';
     document.getElementById('workerPanel').style.display = 'none';
     document.getElementById('loginPanel').style.display = 'block';
   }
 </script>
+
 
 </body>
 </html>
