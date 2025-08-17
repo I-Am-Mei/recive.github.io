@@ -17,36 +17,40 @@ button:hover { background: #0056b3; }
 
 <div class="login-container">
     <h2>Login to Dashboard</h2>
-    <input type="text" id="username" placeholder="Username">
+    <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Password">
     <button id="loginBtn">Login</button>
     <p class="error" id="errorMsg"></p>
 </div>
 
+<!-- Include Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-fetch('users.json')
-  .then(response => response.json())
-  .then(users => {
-    document.getElementById('loginBtn').addEventListener('click', () => {
-        const user = document.getElementById('username').value.trim();
-        const pass = document.getElementById('password').value.trim();
+// Initialize Supabase
+const supabaseUrl = 'https://YOUR_PROJECT.supabase.co';
+const supabaseKey = 'YOUR_ANON_KEY';
+const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
-        const found = users.find(u => u.username === user && u.password === pass);
-        if(found){
-            localStorage.setItem('currentUser', JSON.stringify(found)); // ✅ save full user
-            window.location.href = 'index.html';
-        } else {
-            document.getElementById('errorMsg').textContent = 'Invalid username or password. Please try again.';
-        }
-    });
-  })
-  .catch(err => {
-      console.error('Failed to load users.json', err);
-      document.getElementById('errorMsg').textContent = 'Server error: cannot load users.';
-  });
+document.getElementById('loginBtn').addEventListener('click', async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    if(!email || !password){
+        document.getElementById('errorMsg').textContent = 'Please enter email and password.';
+        return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if(error){
+        document.getElementById('errorMsg').textContent = error.message;
+    } else {
+        // Login successful
+        localStorage.setItem('currentUser', JSON.stringify(data.user));
+        window.location.href = 'index.html';
+    }
+});
 </script>
-
 
 </body>
 </html>
-
