@@ -52,14 +52,6 @@ button:hover {
     background: #2980b9;
 }
 
-.card {
-    background: #fff;
-    padding: 15px;
-    margin: 10px 0;
-    border-radius: 10px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.1);
-}
-
 .login-container {
     max-width: 400px;
     margin: 100px auto;
@@ -68,13 +60,6 @@ button:hover {
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
     text-align: center;
-}
-
-.time-off-box {
-    background: #fff7cc;
-    padding: 12px;
-    border-radius: 10px;
-    margin-top: 10px;
 }
 </style>
 </head>
@@ -90,12 +75,14 @@ button:hover {
     <input type="text" id="loginUsername" placeholder="Username">
     <input type="password" id="loginPassword" placeholder="Password">
     <button onclick="handleLogin()">Login</button>
+    <p id="loginMessage" style="color:red;"></p>
 </div>
 
 <!-- Head Dashboard -->
 <div id="headPanel" style="display:none;">
     <section>
         <h2>Head Dashboard</h2>
+        <p id="headWelcome"></p>
         <h3>Add Member</h3>
         <input id="newName" placeholder="Name">
         <select id="newRole">
@@ -107,21 +94,8 @@ button:hover {
     </section>
 
     <section>
-        <h3>Active Members</h3>
-        <div id="activeMembers"></div>
-    </section>
-
-    <section>
-        <h3>Assign Task</h3>
-        <input id="taskTitle" placeholder="Task Title">
-        <textarea id="taskDescription" placeholder="Task Description"></textarea>
-        <select id="assignTo"></select>
-        <button onclick="assignTask()">Assign Task</button>
-    </section>
-
-    <section>
-        <h3>Member Credentials</h3>
-        <div id="credentialsList"></div>
+        <h3>All Users</h3>
+        <div id="allUsers"></div>
     </section>
 </div>
 
@@ -130,38 +104,70 @@ button:hover {
     <section>
         <h2 id="workerWelcome"></h2>
     </section>
-
-    <section>
-        <h3>My Tasks</h3>
-        <div id="workerTasks"></div>
-    </section>
-
-    <section>
-        <h3>Request Time Off</h3>
-        <input type="date" id="timeOffDate">
-        <input type="text" id="timeOffReason" placeholder="Reason">
-        <button onclick="requestTimeOff()">Request Time Off</button>
-        <div id="myTimeOffs"></div>
-    </section>
 </div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-function handleLogin() {
+const supabaseUrl = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
+const supabase = supabaseJs.createClient(supabaseUrl, supabaseKey);
+
+async function handleLogin() {
     const username = document.getElementById("loginUsername").value;
     const password = document.getElementById("loginPassword").value;
 
-    // Example: very simple login check
-    if (username === "head" && password === "1234") {
-        document.getElementById("loginPanel").style.display = "none";
-        document.getElementById("headPanel").style.display = "block";
-    } else {
-        document.getElementById("loginPanel").style.display = "none";
-        document.getElementById("workerPanel").style.display = "block";
-        document.getElementById("workerWelcome").textContent = "Welcome " + username;
+    let { data: users, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("username", username)
+        .eq("password", password)
+        .single();
+
+    if (error || !users) {
+        document.getElementById("loginMessage").textContent = "Invalid username or password";
+        return;
     }
+
+    document.getElementById("loginPanel").style.display = "none";
+
+    if (users.role === "Head") {
+        document.getElementById("headPanel").style.display = "block";
+        document.getElementById("headWelcome").textContent = "Welcome, Head " + users.username;
+        loadAllUsers();
+    } else {
+        document.getElementById("workerPanel").style.display = "block";
+        document.getElementById("workerWelcome").textContent = "Welcome " + users.username + " (Role: " + users.role + ")";
+    }
+}
+
+async function loadAllUsers() {
+    const { data, error } = await supabase.from("users").select("id, username, role");
+    if (error) return;
+
+    let html = "";
+    data.forEach(u => {
+        html += `<div>
+            <strong>${u.username}</strong> - ${u.role}
+            <button onclick="deleteUser(${u.id})">Delete</button>
+        </div>`;
+    });
+    document.getElementById("allUsers").innerHTML = html;
+}
+
+async function deleteUser(id) {
+    await supabase.from("users").delete().eq("id", id);
+    loadAllUsers();
+}
+
+async function addMember() {
+    const name = document.getElementById("newName").value;
+    const role = document.getElementById("newRole").value;
+
+    await supabase.from("users").insert([{ username: name, password: "default123", role }]);
+    loadAllUsers();
 }
 </script>
 </body>
 </html>
 
-</body>
-</html>
