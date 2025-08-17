@@ -8,7 +8,7 @@
 <body>
 <h1>Welcome to the Dashboard</h1>
 <p id="userInfo"></p>
-
+<p id="message"></p>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -20,17 +20,28 @@ async function checkAuth() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if(!session){
-        // Not logged in, redirect to login
+        // Not logged in, redirect to login page
         window.location.href = 'login.html';
+        return;
+    }
+
+    // User is logged in
+    const user = session.user;
+    document.getElementById('userInfo').textContent = `Logged in as: ${user.email}`;
+}
+
+// Optional: auto-login after signup (for first-time users)
+async function loginAfterSignup(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+        document.getElementById('message').textContent = 'Login failed: ' + error.message;
     } else {
-        const user = session.user;
-        document.getElementById('userInfo').textContent = `Logged in as: ${user.email}`;
+        window.location.href = 'dashboard.html';
     }
 }
 
+// Call on page load
 checkAuth();
 </script>
-
 </body>
 </html>
-
