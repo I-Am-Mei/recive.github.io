@@ -3,29 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Login</title>
+  <title>First Login</title>
 </head>
 <body>
-  <div id="loginPanel">
-    <h1>Login</h1>
-    <form id="loginForm">
-      <input type="text" id="username" placeholder="Username" required><br>
-      <input type="password" id="password" placeholder="Password" required><br>
-      <button type="submit">Login</button>
-    </form>
-    <p id="message"></p>
-  </div>
+  <h1>Welcome! Set Your Password</h1>
+  <form id="firstLoginForm">
+    <input type="email" id="email" placeholder="Email" required><br>
+    <input type="password" id="password" placeholder="New Password" required><br>
+    <button type="submit">Set Password & Login</button>
+  </form>
+  <p id="message"></p>
 
-  <div id="headPanel" style="display:none;">
-    <h2>Welcome Head</h2>
-    <button onclick="logout()">Logout</button>
-  </div>
-
-  <div id="workerPanel" style="display:none;">
-    <h2 id="workerWelcome">Welcome Worker</h2>
-    <button onclick="logout()">Logout</button>
-  </div>
-  
   <!-- Supabase JS v2 UMD CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
