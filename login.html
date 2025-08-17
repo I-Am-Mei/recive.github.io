@@ -14,11 +14,12 @@
 </form>
 <p id="message"></p>
 
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+const supabase = Supabase.createClient(supabaseUrl, supabaseKey); // <-- capital S
 
 document.getElementById('firstLoginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -26,16 +27,13 @@ document.getElementById('firstLoginForm').addEventListener('submit', async (e) =
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
 
-  // Log in user with temporary password
-  const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (loginError) {
-    // If first login, you might need to reset password or prompt magic link
-    document.getElementById('message').textContent = 'Error: ' + loginError.message;
+  if (error) {
+    document.getElementById('message').textContent = 'Error: ' + error.message;
     return;
   }
 
-  // User logged in successfully
   window.location.href = 'dashboard.html';
 });
 </script>
