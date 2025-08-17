@@ -4,20 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Project Dashboard</title>
-<style>
-body { font-family: Arial; margin: 0; background: #eef2f7; }
-header { background: #007bff; color: white; padding: 20px; text-align: center; font-size: 24px; }
-.container { display: flex; flex-wrap: wrap; padding: 20px; justify-content: space-around; }
-.card { background: white; border-radius: 10px; padding: 20px; margin: 10px; flex: 1 1 220px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.2s; }
-.card:hover { transform: scale(1.02); }
-.inactive-box { background: #ffdede; border-radius: 10px; padding: 20px; margin: 20px; }
-input, select, textarea { width: 100%; padding: 10px; margin: 6px 0; border-radius: 5px; border: 1px solid #ccc; }
-button { padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 6px; }
-button:hover { background: #0056b3; }
-h3 { margin-top: 0; font-size: 18px; }
-section { margin-bottom: 40px; }
-.time-off-box { background: #fff7cc; padding: 12px; border-radius: 10px; margin-top: 10px; }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -28,6 +15,7 @@ section { margin-bottom: 40px; }
 <!-- Panel for Heads -->
 <div id="headPanel" style="display:none;">
     <h2>Head Dashboard</h2>
+    
     <h3>Add Member</h3>
     <input id="newName" placeholder="Name">
     <select id="newRole">
@@ -36,13 +24,13 @@ section { margin-bottom: 40px; }
         <option>Artist</option>
         <option>Composer</option>
     </select>
-    <button onclick="addMember()">Add</button>
+    <button id="addMemberBtn">Add</button>
 
     <h3>Assign Task</h3>
     <input id="taskTitle" placeholder="Task title">
     <input id="taskDescription" placeholder="Description">
     <select id="assignTo"></select>
-    <button onclick="assignTask()">Assign</button>
+    <button id="assignTaskBtn">Assign</button>
 
     <div id="credentialsList" style="display:none;"></div>
 </div>
@@ -50,21 +38,19 @@ section { margin-bottom: 40px; }
 <!-- Panel for Workers -->
 <div id="workerPanel" style="display:none;">
     <h2 id="workerWelcome"></h2>
-    <div id="myTasks"></div>
+    
+    <section>
+        <h3>My Tasks</h3>
+        <div id="workerTasks"></div>
+    </section>
 
     <h3>Request Time Off</h3>
     <input type="date" id="timeOffDate">
     <input type="text" id="timeOffReason" placeholder="Reason">
-    <button onclick="requestTimeOff()">Request</button>
+    <button id="requestTimeOffBtn">Request</button>
 
     <div id="myTimeOffs"></div>
 </div>
-
-
-<section id="tasksSection" style="padding:20px;">
-    <h2>My Tasks</h2>
-    <div id="myTasks"></div>
-</section>
 
 <section style="padding:20px;">
     <h2>All Members Overview</h2>
@@ -74,174 +60,6 @@ section { margin-bottom: 40px; }
     <div class="inactive-box" id="inactiveMembers"></div>
 </section>
 
-<script>
-// Load from localStorage
-let users = JSON.parse(localStorage.getItem('users') || '[]');
-let members = JSON.parse(localStorage.getItem('members') || '[]');
-let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-let timeOffs = JSON.parse(localStorage.getItem('timeOffs') || '[]');
-
-let currentUser = null;
-
-// Utility: random password
-function generatePassword(length = 8) {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    return Array.from({length}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
-}
-
-// Login
-function login(username, password) {
-    currentUser = users.find(u => u.username === username && u.password === password);
-    if(!currentUser) {
-        alert("Invalid login!");
-        return;
-    }
-    
-    if(currentUser.role.toLowerCase() === 'head') {
-        document.getElementById('headPanel').style.display = 'block';
-        document.getElementById('credentialsList').style.display = 'block'; // Only visible to heads
-        renderCredentials();
-    } else {
-        document.getElementById('workerPanel').style.display = 'block';
-        document.getElementById('workerWelcome').textContent = `Welcome, ${currentUser.name}!`;
-    }
-
-    renderMembers();
-    renderTasks();
-    renderTimeOffs();
-}
-
-// --- MEMBERS ---
-function renderMembers() {
-    const activeDiv = document.getElementById('activeMembers');
-    activeDiv.innerHTML = '';
-
-    members.forEach(m => {
-        const card = document.createElement('div'); 
-        card.className='card';
-        card.innerHTML = `<strong>${m.name}</strong> <br> Role: ${m.role}`;
-        if(currentUser.role.toLowerCase() === 'head'){
-            card.innerHTML += `<br><button onclick="removeMember('${m.username}')">Remove</button>`;
-        }
-        activeDiv.appendChild(card);
-    });
-}
-
-function addMember() {
-    if(currentUser.role.toLowerCase() !== 'head') { alert("Only Head can add members."); return; }
-
-    const name = document.getElementById('newName').value.trim();
-    const role = document.getElementById('newRole').value;
-    if(!name) { alert('Please enter a name'); return; }
-
-    const username = name.toLowerCase().replace(/\s+/g,'') + Date.now();
-    const password = generatePassword();
-
-    const member = {name, role, username, inactive: false};
-    members.push(member);
-
-    const user = {username, password, role: "Member", name};
-    users.push(user);
-
-    localStorage.setItem('members', JSON.stringify(members));
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    document.getElementById('newName').value = '';
-    renderMembers();
-    renderCredentials();
-}
-
-function removeMember(username) {
-    if(currentUser.role.toLowerCase() !== 'head') { alert("Only Head can remove members."); return; }
-    if(confirm('Remove this member?')) {
-        members = members.filter(m => m.username !== username);
-        users = users.filter(u => u.username !== username);
-        localStorage.setItem('members', JSON.stringify(members));
-        localStorage.setItem('users', JSON.stringify(users));
-        renderMembers();
-        renderCredentials();
-    }
-}
-
-// --- TASKS ---
-function renderTasks() {
-    const taskDiv = document.getElementById('myTasks');
-    if(!taskDiv) return;
-    taskDiv.innerHTML = '';
-    const myTasks = tasks.filter(t => t.assignedTo === currentUser.username);
-    if(myTasks.length === 0) {
-        taskDiv.textContent = 'No tasks assigned.';
-        return;
-    }
-    myTasks.forEach(t => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `<strong>${t.title}</strong><br>${t.description}<br>Status: ${t.status}`;
-        taskDiv.appendChild(card);
-    });
-}
-
-function assignTask() {
-    const title = document.getElementById('taskTitle').value.trim();
-    const description = document.getElementById('taskDescription').value.trim();
-    const assignedTo = document.getElementById('assignTo').value;
-
-    if(!title || !assignedTo) { alert("Please fill task details."); return; }
-
-    tasks.push({title, description, assignedTo, status: "Pending"});
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-
-    document.getElementById('taskTitle').value = '';
-    document.getElementById('taskDescription').value = '';
-    renderTasks();
-}
-
-// --- TIME OFF ---
-function renderTimeOffs() {
-    const timeDiv = document.getElementById('myTimeOffs');
-    if(!timeDiv) return;
-    timeDiv.innerHTML = '';
-    const myTimeOffs = timeOffs.filter(to => to.username === currentUser.username);
-    if(myTimeOffs.length === 0) {
-        timeDiv.textContent = 'No time off requests.';
-        return;
-    }
-    myTimeOffs.forEach(to => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.textContent = `Date: ${to.date}, Reason: ${to.reason}, Status: ${to.status}`;
-        timeDiv.appendChild(card);
-    });
-}
-
-function requestTimeOff() {
-    const date = document.getElementById('timeOffDate').value;
-    const reason = document.getElementById('timeOffReason').value.trim();
-    if(!date || !reason) { alert("Fill date and reason."); return; }
-
-    timeOffs.push({username: currentUser.username, date, reason, status: "Pending"});
-    localStorage.setItem('timeOffs', JSON.stringify(timeOffs));
-    renderTimeOffs();
-    document.getElementById('timeOffDate').value = '';
-    document.getElementById('timeOffReason').value = '';
-}
-
-// --- HEAD CREDENTIALS VIEW ---
-function renderCredentials() {
-    const credDiv = document.getElementById('credentialsList');
-    credDiv.innerHTML = '<h3>User Credentials</h3>';
-    users.forEach(u => {
-        credDiv.innerHTML += `<div><strong>${u.name}</strong> (${u.role})<br>Username: ${u.username}, Password: ${u.password}</div><hr>`;
-    });
-}
-
-// --- Login button ---
-document.getElementById('loginBtn').addEventListener('click', () => {
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
-    login(username, password);
-});
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
