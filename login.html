@@ -14,28 +14,34 @@
 </form>
 <p id="message"></p>
 
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Supabase JS v2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
-const supabase = Supabase.createClient(supabaseUrl, supabaseKey); // <-- capital S
+  // Initialize Supabase client
+  const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
+  const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
-document.getElementById('firstLoginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
+  document.getElementById('firstLoginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    // Attempt login
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-  if (error) {
-    document.getElementById('message').textContent = 'Error: ' + error.message;
-    return;
-  }
+    if (loginError) {
+      document.getElementById('message').textContent = 'Error: ' + loginError.message;
+      return;
+    }
 
-  window.location.href = 'dashboard.html';
-});
+    // Login successful
+    window.location.href = 'dashboard.html';
+  });
 </script>
 </body>
 </html>
