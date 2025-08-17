@@ -1,127 +1,225 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project Dashboard</title>
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-    header { background: #2c3e50; color: #fff; padding: 15px 20px; text-align: center; }
-    h1, h2, h3 { margin: 5px 0; }
-    section { background: #fff; margin: 15px auto; padding: 20px; border-radius: 10px; max-width: 600px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, select, textarea, button { padding: 8px; margin: 5px 0; width: 100%; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
-    button { background: #3498db; color: #fff; border: none; cursor: pointer; }
-    button:hover { background: #2980b9; }
-    .card { background: #fff; padding: 15px; margin: 10px 0; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-    .login-container { max-width: 400px; margin: 100px auto; padding: 30px; background: #fff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; }
-    .time-off-box { background: #fff7cc; padding: 12px; border-radius: 10px; margin-top: 10px; }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Project Dashboard - Team Management</h1>
-  </header>
-
-  <!-- LOGIN -->
-  <div class="login-container" id="loginPanel">
-    <h2>Login</h2>
-    <input type="text" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
-    <button onclick="handleLogin()">Login</button>
-    <p id="message" style="color:red;"></p>
-  </div>
-
-  <!-- Head Dashboard -->
-  <div id="headPanel" style="display:none;">
-    <section>
-      <h2>Head Dashboard</h2>
-      <h3>Add Member</h3>
-      <input id="newName" placeholder="Name">
-      <select id="newRole">
-        <option>Writer</option>
-        <option>Animator</option>
-        <option>Designer</option>
-      </select>
-      <button onclick="addMember()">Add Member</button>
-    </section>
-
-    <section>
-      <h3>Active Members</h3>
-      <div id="activeMembers"></div>
-    </section>
-
-    <section>
-      <h3>Assign Task</h3>
-      <input id="taskTitle" placeholder="Task Title">
-      <textarea id="taskDescription" placeholder="Task Description"></textarea>
-      <select id="assignTo"></select>
-      <button onclick="assignTask()">Assign Task</button>
-    </section>
-
-    <section>
-      <h3>Member Credentials</h3>
-      <div id="credentialsList"></div>
-    </section>
-  </div>
-
-  <!-- Worker Dashboard -->
-  <div id="workerPanel" style="display:none;">
-    <section>
-      <h2 id="workerWelcome"></h2>
-    </section>
-    <section>
-      <h3>My Tasks</h3>
-      <div id="workerTasks"></div>
-    </section>
-    <section>
-      <h3>Request Time Off</h3>
-      <input type="date" id="timeOffDate">
-      <input type="text" id="timeOffReason" placeholder="Reason">
-      <button onclick="requestTimeOff()">Request Time Off</button>
-      <div id="myTimeOffs"></div>
-    </section>
-  </div>
-
-  <!-- Supabase JS v2 UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Supabase Table Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script>
-    const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
-    const supabase = supabaseJs.createClient(supabaseUrl, supabaseKey);
-
-    async function handleLogin() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        document.getElementById('message').textContent = "Error: " + error.message;
-        return;
-      }
-
-      // fetch role from users table
-      const { data: userRow, error: roleError } = await supabase
-        .from('users')
-        .select('role, username')
-        .eq('id', data.user.id)
-        .single();
-
-      if (roleError || !userRow) {
-        document.getElementById('message').textContent = "Login failed: could not fetch role";
-        return;
-      }
-
-      document.getElementById('loginPanel').style.display = "none";
-
-      if (userRow.role === "head") {
-        document.getElementById('headPanel').style.display = "block";
-      } else {
-        document.getElementById('workerPanel').style.display = "block";
-        document.getElementById('workerWelcome').textContent = "Welcome " + userRow.username;
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+          colors: {
+            brand: {
+              50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8',
+              500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81'
+            }
+          }
+        }
       }
     }
   </script>
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <!-- App Card -->
+    <div id="card" class="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 py-5 bg-white/60 backdrop-blur border-b border-slate-100">
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7 text-brand-600"><path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2zm1 15h-2v-2h2zm0-4h-2V7h2z"/></svg>
+          Sign in
+        </h1>
+        <p class="text-slate-500 text-sm mt-1">Authenticate using your entry in the <code class="px-1 py-0.5 rounded bg-slate-100 text-slate-700">user</code> table.</p>
+      </div>
+
+      <!-- Login View -->
+      <form id="loginForm" class="px-6 py-6 space-y-4">
+        <div>
+          <label for="username" class="block text-sm font-medium text-slate-700">Username</label>
+          <input id="username" name="username" type="text" autocomplete="username" required
+                 class="mt-1 w-full rounded-xl border-slate-300 focus:border-brand-500 focus:ring-brand-500 shadow-sm" placeholder="yourname">
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required
+                 class="mt-1 w-full rounded-xl border-slate-300 focus:border-brand-500 focus:ring-brand-500 shadow-sm" placeholder="••••••••">
+        </div>
+
+        <div id="error" class="hidden rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm p-3"></div>
+
+        <button id="submitBtn" type="submit"
+                class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 text-white font-semibold py-2.5 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-60 disabled:cursor-not-allowed">
+          <span id="btnText">Sign in</span>
+          <svg id="spinner" class="hidden animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+        </button>
+
+        <p class="text-xs text-slate-500 text-center">Demo login uses a <span class="font-semibold">table lookup</span> (not Supabase Auth).</p>
+      </form>
+
+      <!-- Dashboard View (hidden until login) -->
+      <div id="dashboard" class="hidden">
+        <div class="px-6 py-6 space-y-4">
+          <div class="flex items-start justify-between">
+            <div>
+              <h2 id="welcome" class="text-xl font-semibold text-slate-900"></h2>
+              <p id="role" class="text-slate-600 text-sm"></p>
+            </div>
+            <button id="logoutBtn" class="text-sm px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50">Logout</button>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 overflow-hidden">
+            <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 text-sm font-semibold text-slate-700">Your account</div>
+            <div class="p-4 grid grid-cols-1 gap-3 text-sm">
+              <div class="flex items-center justify-between"><span class="text-slate-500">ID</span><span id="uid" class="font-mono text-slate-800"></span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-500">Username</span><span id="uname" class="text-slate-800"></span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-500">Role</span><span id="urole" class="text-slate-800"></span></div>
+              <div class="flex items-center justify-between"><span class="text-slate-500">Created</span><span id="created" class="text-slate-800"></span></div>
+            </div>
+          </div>
+
+          <div class="rounded-xl bg-yellow-50 border border-yellow-200 p-3 text-xs text-yellow-800">
+            ⚠️ For production, do <span class="font-semibold">NOT</span> store plain-text passwords or expose a table with RLS open. Use Supabase Auth or hash/salt passwords and write a secure RPC.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-center text-xs text-slate-500 mt-4">© <span id="year"></span> Demo. Built with Supabase JS v2 + Tailwind.</p>
+  </div>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // --- Config (provided by you) ---
+    const SUPABASE_URL = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
+
+    // Create client
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Elements
+    const form = document.getElementById('loginForm');
+    const errorEl = document.getElementById('error');
+    const btn = document.getElementById('submitBtn');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btnText');
+    const dashboard = document.getElementById('dashboard');
+
+    const welcome = document.getElementById('welcome');
+    const roleEl = document.getElementById('role');
+    const uidEl = document.getElementById('uid');
+    const unameEl = document.getElementById('uname');
+    const uroleEl = document.getElementById('urole');
+    const createdEl = document.getElementById('created');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Simple session cache (client-side only)
+    const SESSION_KEY = 'demo_user_session';
+
+    function setLoading(loading) {
+      btn.disabled = loading;
+      spinner.classList.toggle('hidden', !loading);
+      btnText.textContent = loading ? 'Signing in…' : 'Sign in';
+    }
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.classList.remove('hidden');
+    }
+
+    function hideError() {
+      errorEl.classList.add('hidden');
+      errorEl.textContent = '';
+    }
+
+    function showDashboard(user) {
+      form.classList.add('hidden');
+      dashboard.classList.remove('hidden');
+
+      welcome.textContent = `Welcome, ${user.username}!`;
+      roleEl.textContent = 'You are signed in.';
+      uidEl.textContent = user.id ?? user.IS ?? '(missing id)';
+      unameEl.textContent = user.username;
+      uroleEl.textContent = user.role ?? '—';
+      createdEl.textContent = user.created_at ? new Date(user.created_at).toLocaleString() : '—';
+    }
+
+    function logout() {
+      localStorage.removeItem(SESSION_KEY);
+      dashboard.classList.add('hidden');
+      form.classList.remove('hidden');
+      (document.getElementById('password')).value = '';
+    }
+
+    logoutBtn?.addEventListener('click', logout);
+
+    // Auto-load existing session
+    try {
+      const cached = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+      if (cached && cached.username) {
+        showDashboard(cached);
+      }
+    } catch {}
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+      setLoading(true);
+
+      const username = (document.getElementById('username')).value.trim();
+      const password = (document.getElementById('password')).value;
+
+      if (!username || !password) {
+        setLoading(false);
+        return showError('Please enter both username and password.');
+      }
+
+      // IMPORTANT: This is a table lookup (NOT secure for production!).
+      // Your table columns (as described): IS (uuid), username (text), password (text), role (text), created_at (timestamptz)
+      // If your id column is actually named "id" instead of "IS", the select below still works due to aliasing in JS.
+      try {
+        const { data, error } = await supabase
+          .from('user')
+          .select('id, IS, username, password, role, created_at')
+          .eq('username', username)
+          .eq('password', password)
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!data) {
+          showError('Invalid username or password.');
+        } else {
+          // Save session in localStorage (client-only)
+          localStorage.setItem(SESSION_KEY, JSON.stringify({
+            id: data.id ?? data.IS,
+            username: data.username,
+            role: data.role,
+            created_at: data.created_at
+          }));
+          showDashboard(data);
+        }
+      } catch (err) {
+        console.error(err);
+        showError('Sign-in failed. Check your Supabase policies and try again.');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+  </script>
 </body>
 </html>
-
