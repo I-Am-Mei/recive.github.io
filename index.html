@@ -106,58 +106,6 @@ button:hover {
     </section>
 </div>
 
-<!-- Supabase JS v2 UMD CDN --> 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script>
-  // Initialize Supabase client using the UMD global
-  const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
-  const supabase = supabaseJs.createClient(supabaseUrl, supabaseKey);
-
-  async function handleLogin(username, password) {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username, password, role')
-      .eq('username', username)
-      .single();
-
-    if (error || !data) {
-      document.getElementById('message').textContent = 'Invalid username or password.';
-      return;
-    }
-
-    if (data.password !== password) {
-      document.getElementById('message').textContent = 'Invalid username or password.';
-      return;
-    }
-
-    localStorage.setItem('userId', data.id);
-    localStorage.setItem('role', data.role);
-
-    document.getElementById('loginPanel').style.display = 'none';
-    if (data.role === 'head') {
-      document.getElementById('headPanel').style.display = 'block';
-    } else {
-      document.getElementById('workerPanel').style.display = 'block';
-      document.getElementById('workerWelcome').textContent = "Welcome " + data.username;
-    }
-  }
-
-  document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    await handleLogin(username, password);
-  });
-
-  function logout() {
-    localStorage.clear();
-    document.getElementById('headPanel').style.display = 'none';
-    document.getElementById('workerPanel').style.display = 'none';
-    document.getElementById('loginPanel').style.display = 'block';
-  }
-</script>
-
-
+https://i-am-mei.github.io/recive.github.io/index.html
 </body>
 </html>
