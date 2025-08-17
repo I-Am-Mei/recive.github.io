@@ -1,9 +1,10 @@
-// Load from localStorage
-let users = JSON.parse(localStorage.getItem('users') || '[]');
-let members = JSON.parse(localStorage.getItem('members') || '[]');
-let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-let timeOffs = JSON.parse(localStorage.getItem('timeOffs') || '[]');
+// --- Supabase Setup ---
+const SUPABASE_URL = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
 
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- LOCAL VARIABLES ---
 let currentUser = null;
 
 // Utility: random password
@@ -12,12 +13,21 @@ function generatePassword(length = 8) {
     return Array.from({length}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
 }
 
-// LOGIN
-function handleLogin() {
+// --- LOGIN ---
+async function handleLogin() {
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
-    currentUser = users.find(u => u.username === username && u.password === password);
-    if(!currentUser) { alert("Invalid login!"); return; }
+
+    const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .eq('password', password)
+        .limit(1);
+
+    if(error || users.length === 0) { alert("Invalid login!"); return; }
+
+    currentUser = users[0];
 
     document.getElementById('loginPanel').style.display = 'none';
 
@@ -35,7 +45,8 @@ function handleLogin() {
 }
 
 // --- MEMBERS ---
-function renderMembers() {
+async function renderMembers() {
+    const { data: members, error } = await supabase.from('members').select('*');
     const activeDiv = document.getElementById('activeMembers');
     const assignSelect = document.getElementById('assignTo');
     if(!activeDiv || !assignSelect) return;
@@ -59,7 +70,7 @@ function renderMembers() {
     });
 }
 
-function addMember() {
+async function addMember() {
     if(currentUser.role.toLowerCase() !== 'head') { alert("Only Head can add members."); return; }
 
     const name = document.getElementById('newName').value.trim();
@@ -70,41 +81,39 @@ function addMember() {
     const password = generatePassword();
 
     const member = {name, role, username, inactive: false};
-    members.push(member);
-
     const user = {username, password, role: "Member", name};
-    users.push(user);
 
-    localStorage.setItem('members', JSON.stringify(members));
-    localStorage.setItem('users', JSON.stringify(users));
-    
+    await supabase.from('members').insert([member]);
+    await supabase.from('users').insert([user]);
+
     document.getElementById('newName').value = '';
     renderMembers();
     renderCredentials();
 }
 
-function removeMember(username) {
+async function removeMember(username) {
     if(currentUser.role.toLowerCase() !== 'head') { alert("Only Head can remove members."); return; }
     if(confirm('Remove this member?')) {
-        members = members.filter(m => m.username !== username);
-        users = users.filter(u => u.username !== username);
-        localStorage.setItem('members', JSON.stringify(members));
-        localStorage.setItem('users', JSON.stringify(users));
+        await supabase.from('members').delete().eq('username', username);
+        await supabase.from('users').delete().eq('username', username);
         renderMembers();
         renderCredentials();
     }
 }
 
 // --- TASKS ---
-function renderTasks() {
+async function renderTasks() {
+    const { data: tasks } = await supabase.from('tasks').select('*');
     const taskDiv = document.getElementById('workerTasks');
     if(!taskDiv || !currentUser) return;
     taskDiv.innerHTML = '';
+
     const myTasks = tasks.filter(t => t.assignedTo === currentUser.username);
     if(myTasks.length === 0) {
         taskDiv.textContent = 'No tasks assigned.';
         return;
     }
+
     myTasks.forEach(t => {
         const card = document.createElement('div');
         card.className = 'card';
@@ -113,26 +122,24 @@ function renderTasks() {
     });
 }
 
-function assignTask() {
+async function assignTask() {
     const title = document.getElementById('taskTitle').value.trim();
     const description = document.getElementById('taskDescription').value.trim();
     const assignedTo = document.getElementById('assignTo').value;
 
     if(!title || !assignedTo) { alert("Please fill task details."); return; }
 
-    tasks.push({title, description, assignedTo, status: "Pending"});
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+    await supabase.from('tasks').insert([{title, description, assignedTo, status: "Pending"}]);
 
-    // Clear input fields
     document.getElementById('taskTitle').value = '';
     document.getElementById('taskDescription').value = '';
     
     renderTasks();
 }
 
-
 // --- TIME OFFS ---
-function renderTimeOffs() {
+async function renderTimeOffs() {
+    const { data: timeOffs } = await supabase.from('timeoffs').select('*');
     const timeOffDiv = document.getElementById('timeOffRequests');
     if(!timeOffDiv) return;
     timeOffDiv.innerHTML = '';
@@ -159,30 +166,30 @@ function renderTimeOffs() {
     });
 }
 
-function requestTimeOff() {
+async function requestTimeOff() {
     const startDate = document.getElementById('timeOffStart').value;
     const endDate = document.getElementById('timeOffEnd').value;
 
     if(!startDate || !endDate) { alert("Please select dates."); return; }
 
-    timeOffs.push({username: currentUser.username, name: currentUser.name, startDate, endDate, status: "Pending"});
-    localStorage.setItem('timeOffs', JSON.stringify(timeOffs));
+    await supabase.from('timeoffs').insert([{username: currentUser.username, name: currentUser.name, startDate, endDate, status: "Pending"}]);
 
     renderTimeOffs();
 }
 
-function updateTimeOff(username, startDate, status) {
-    const request = timeOffs.find(t => t.username === username && t.startDate === startDate);
-    if(request) {
-        request.status = status;
-        localStorage.setItem('timeOffs', JSON.stringify(timeOffs));
-        renderTimeOffs();
-    }
+async function updateTimeOff(username, startDate, status) {
+    await supabase.from('timeoffs')
+        .update({status})
+        .eq('username', username)
+        .eq('startDate', startDate);
+
+    renderTimeOffs();
 }
 
 // --- CREDENTIALS DISPLAY ---
-function renderCredentials() {
+async function renderCredentials() {
     if(currentUser.role.toLowerCase() !== 'head') return;
+    const { data: users } = await supabase.from('users').select('*');
     const credDiv = document.getElementById('credentialsList');
     if(!credDiv) return;
     credDiv.innerHTML = '';
