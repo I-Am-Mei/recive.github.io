@@ -107,66 +107,53 @@ button:hover {
 </div>
 
 <!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const supabaseUrl = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-async function handleLogin() {
-    const username = document.getElementById("loginUsername").value;
-    const password = document.getElementById("loginPassword").value;
+  async function handleLogin(username, password) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, password, role')
+      .eq('username', username)
+      .single();
 
-    let { data: user, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("username", username)
-        .eq("password", password)
-        .single();
-
-    if (error || !user) {
-        document.getElementById("loginMessage").textContent = "Invalid username or password";
-        return;
+    if (error || !data) {
+      document.getElementById('message').textContent = 'Invalid username or password.';
+      return;
     }
 
-    document.getElementById("loginPanel").style.display = "none";
+    if (data.password !== password) {
+      document.getElementById('message').textContent = 'Invalid username or password.';
+      return;
+    }
 
-    if (user.role === "Head") {
-        document.getElementById("headPanel").style.display = "block";
-        document.getElementById("headWelcome").textContent = "Welcome, Head " + user.username;
-        loadAllUsers();
+    localStorage.setItem('userId', data.id);
+    localStorage.setItem('role', data.role);
+
+    document.getElementById('loginPanel').style.display = 'none';
+    if (data.role === 'head') {
+      document.getElementById('headPanel').style.display = 'block';
     } else {
-        document.getElementById("workerPanel").style.display = "block";
-        document.getElementById("workerWelcome").textContent = "Welcome " + user.username + " (Role: " + user.role + ")";
+      document.getElementById('workerPanel').style.display = 'block';
+      document.getElementById('workerWelcome').textContent = "Welcome " + data.username;
     }
-}
+  }
 
-async function loadAllUsers() {
-    const { data, error } = await supabase.from("users").select("id, username, role");
-    if (error) return;
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    await handleLogin(username, password);
+  });
 
-    let html = "";
-    data.forEach(u => {
-        html += `<div>
-            <strong>${u.username}</strong> - ${u.role}
-            <button onclick="deleteUser(${u.id})">Delete</button>
-        </div>`;
-    });
-    document.getElementById("allUsers").innerHTML = html;
-}
-
-async function deleteUser(id) {
-    await supabase.from("users").delete().eq("id", id);
-    loadAllUsers();
-}
-
-async function addMember() {
-    const name = document.getElementById("newName").value;
-    const role = document.getElementById("newRole").value;
-
-    await supabase.from("users").insert([{ username: name, password: "default123", role }]);
-    loadAllUsers();
-}
+  function logout() {
+    localStorage.clear();
+    document.getElementById('headPanel').style.display = 'none';
+    document.getElementById('workerPanel').style.display = 'none';
+    document.getElementById('loginPanel').style.display = 'block';
+  }
 </script>
 </body>
 </html>
