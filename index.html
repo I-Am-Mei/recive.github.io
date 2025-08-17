@@ -114,7 +114,7 @@ button:hover {
   // Initialize Supabase client
   const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
-  const supabase = supabaseJs.createClient(supabaseUrl, supabaseKey);
+  const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
   // Handle login form submit
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
