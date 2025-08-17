@@ -106,22 +106,71 @@ button:hover {
     </section>
 </div>
 
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-function handleLogin() {
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
+const supabaseUrl = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // Simple front-end login check (replace with real logic later)
-    if (username === "admin" && password === "123") {
-        document.getElementById('loginMessage').textContent = 'Login successful!';
-        document.getElementById('loginPanel').style.display = 'none';
-        document.getElementById('headPanel').style.display = 'block';
-        document.getElementById('headWelcome').textContent = `Welcome, ${username}`;
+async function handleLogin() {
+    const username = document.getElementById("loginUsername").value;
+    const password = document.getElementById("loginPassword").value;
+
+    let { data: user, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("username", username)
+        .eq("password", password)
+        .single();
+
+    if (error || !user) {
+        document.getElementById("loginMessage").textContent = "Invalid username or password";
+        return;
+    }
+
+    document.getElementById("loginPanel").style.display = "none";
+
+    if (user.role === "Head") {
+        document.getElementById("headPanel").style.display = "block";
+        document.getElementById("headWelcome").textContent = "Welcome, Head " + user.username;
+        loadAllUsers();
     } else {
-        document.getElementById('loginMessage').textContent = 'Invalid username or password.';
+        document.getElementById("workerPanel").style.display = "block";
+        document.getElementById("workerWelcome").textContent = "Welcome " + user.username + " (Role: " + user.role + ")";
     }
 }
+
+async function loadAllUsers() {
+    const { data, error } = await supabase.from("users").select("id, username, role");
+    if (error) return;
+
+    let html = "";
+    data.forEach(u => {
+        html += `<div>
+            <strong>${u.username}</strong> - ${u.role}
+            <button onclick="deleteUser(${u.id})">Delete</button>
+        </div>`;
+    });
+    document.getElementById("allUsers").innerHTML = html;
+}
+
+async function deleteUser(id) {
+    await supabase.from("users").delete().eq("id", id);
+    loadAllUsers();
+}
+
+async function addMember() {
+    const name = document.getElementById("newName").value;
+    const role = document.getElementById("newRole").value;
+
+    await supabase.from("users").insert([{ username: name, password: "default123", role }]);
+    loadAllUsers();
+}
 </script>
+</body>
+</html>
+
 
 </body>
 </html>
