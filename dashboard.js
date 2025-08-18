@@ -1,12 +1,22 @@
 // --- Supabase client setup ---
 const SUPABASE_URL = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....I6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg"; 
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // --- Session check ---
 const session = JSON.parse(localStorage.getItem('session'));
 if (!session) window.location.href = 'index.html';
 const user = session.user;
+
+// --- Role normalizer to match Animator vs Animation, Musician vs Music, etc. ---
+function normalizeRole(r) {
+  if (!r) return '';
+  const s = String(r).toLowerCase().trim();
+  if (['animator','animation','art','artist'].includes(s)) return 'animation';
+  if (['musician','music','audio','sound'].includes(s)) return 'music';
+  if (['developer','dev','programmer','engineer','coding'].includes(s)) return 'dev';
+  return s;
+}
 
 // --- Hide/Show sections based on user role ---
 document.addEventListener('DOMContentLoaded', function() {
@@ -29,6 +39,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// --- Flash helpers (omitted for brevity) ---
+// showTaskMsg, showCreateMsg, showTimeOffMsg ...
+
 // --- Create Task (Heads only) ---
 document.getElementById('create-task-btn')?.addEventListener('click', async () => {
   if (user.role !== "Head") return; // double safety
@@ -45,7 +58,7 @@ document.getElementById('create-task-btn')?.addEventListener('click', async () =
       description: desc,
       status: 'unassigned',
       assigned_to: null,
-      role, // link task to department
+      role,           // link task to department
       created_at: new Date()
     }]);
 
@@ -73,10 +86,7 @@ document.getElementById('create-user-btn')?.addEventListener('click', async () =
   const role = document.getElementById('new-role').value;
   const level = document.getElementById('new-level') ? document.getElementById('new-level').value : 'Junior';
 
-  if (!username || !role) {
-    showCreateMsg("Username and role required!", true);
-    return;
-  }
+  if (!username || !role) return showCreateMsg("Username & role required!", true);
 
   try {
     const { error } = await client.from('user').insert([{
@@ -92,6 +102,8 @@ document.getElementById('create-user-btn')?.addEventListener('click', async () =
       showCreateMsg("User created!", false);
       document.getElementById('new-username').value = "";
       if (document.getElementById('new-password')) document.getElementById('new-password').value = "";
+      document.getElementById('new-role').value = "";
+      if (document.getElementById('new-level')) document.getElementById('new-level').value = "Junior";
       loadDashboard();
     }
   } catch (err) {
@@ -100,8 +112,8 @@ document.getElementById('create-user-btn')?.addEventListener('click', async () =
   }
 });
 
-// --- Time Off Request ---
-document.getElementById('request-timeoff-btn')?.addEventListener('click', async () => {
+// --- Time Off: Submit (anyone) ---
+document.getElementById('submit-timeoff-btn')?.addEventListener('click', async () => {
   const startDate = document.getElementById('timeoff-start').value;
   const endDate = document.getElementById('timeoff-end').value;
   const reason = document.getElementById('timeoff-reason') ? document.getElementById('timeoff-reason').value.trim() : 'Personal time off';
@@ -133,55 +145,15 @@ document.getElementById('request-timeoff-btn')?.addEventListener('click', async 
       document.getElementById('timeoff-start').value = "";
       document.getElementById('timeoff-end').value = "";
       if (document.getElementById('timeoff-reason')) document.getElementById('timeoff-reason').value = "";
-      loadDashboard(); // Refresh to show updated requests for heads
+      loadDashboard(); // Refresh to show in Heads view
     }
   } catch (err) {
-    console.error('Time off request error:', err);
-    showTimeOffMsg("Failed to submit request", true);
+    console.error('Time off submit error:', err);
+    showTimeOffMsg("Failed to submit time off", true);
   }
 });
 
-// --- Message Display Functions ---
-function showTaskMsg(msg, isError) {
-  const el = document.getElementById('task-msg');
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.remove('hidden', 'text-green-500', 'text-red-500');
-  el.classList.add(isError ? 'text-red-500' : 'text-green-500');
-  setTimeout(() => el.classList.add('hidden'), 3000);
-}
-
-function showCreateMsg(msg, isError) {
-  const successEl = document.getElementById('create-success');
-  const errorEl = document.getElementById('create-error');
-  
-  if (successEl) successEl.classList.add('hidden');
-  if (errorEl) errorEl.classList.add('hidden');
-  
-  if (isError && errorEl) {
-    errorEl.textContent = msg;
-    errorEl.classList.remove('hidden');
-  } else if (!isError && successEl) {
-    successEl.textContent = msg;
-    successEl.classList.remove('hidden');
-  }
-  
-  setTimeout(() => {
-    if (successEl) successEl.classList.add('hidden');
-    if (errorEl) errorEl.classList.add('hidden');
-  }, 3000);
-}
-
-function showTimeOffMsg(msg, isError) {
-  const el = document.getElementById('timeoff-msg');
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.remove('hidden', 'text-green-500', 'text-red-500');
-  el.classList.add(isError ? 'text-red-500' : 'text-green-500');
-  setTimeout(() => el.classList.add('hidden'), 3000);
-}
-
-// --- Load Dashboard ---
+// --- Dashboard Loader (role-aware) ---
 async function loadDashboard() {
   try {
     const { data: users, error: userErr } = await client.from('user').select('*');
@@ -200,15 +172,16 @@ async function loadDashboard() {
     let visibleUsers = [];
     let visibleTasks = [];
 
+    // Heads see everything
     if (user.role === "Head") {
       visibleUsers = users || [];
       visibleTasks = tasks || [];
-      
+
       // Load time off requests for heads
       await loadTimeOffRequests(dashboard);
     } else if (user.level === "Lead") {
-      visibleUsers = users ? users.filter(u => u.role === user.role) : [];
-      visibleTasks = tasks ? tasks.filter(t => t.role === user.role) : [];
+      visibleUsers = users ? users.filter(u => normalizeRole(u.role) === normalizeRole(user.role)) : [];
+      visibleTasks = tasks ? tasks.filter(t => normalizeRole(t.role) === normalizeRole(user.role)) : [];
     } else {
       visibleUsers = users ? users.filter(u => u.id === user.id) : [];
       visibleTasks = tasks ? tasks.filter(t => t.assigned_to === user.id) : [];
@@ -234,10 +207,10 @@ async function loadDashboard() {
     tasksSection.innerHTML = `<h2 class="text-xl font-semibold mb-2">Tasks</h2>`;
     const tList = document.createElement('ul');
 
-    if (visibleTasks.length === 0) {
+    if (!visibleTasks || visibleTasks.length === 0) {
       const li = document.createElement('li');
-      li.textContent = "No tasks found.";
-      li.className = 'text-gray-500 italic';
+      li.className = 'text-gray-500';
+      li.textContent = 'No tasks to show';
       tList.appendChild(li);
     } else {
       visibleTasks.forEach(t => {
@@ -266,19 +239,19 @@ async function loadDashboard() {
         }
 
         // Leads can distribute tasks in their department
-        if (!t.assigned_to && user.level === "Lead" && t.role === user.role) {
+        if (!t.assigned_to && user.level === "Lead" && normalizeRole(t.role) === normalizeRole(user.role)) {
           const buttonContainer = document.createElement('div');
           buttonContainer.className = 'mt-2 flex flex-wrap gap-2';
 
           const juniorsBtn = document.createElement('button');
           juniorsBtn.textContent = "Assign to Juniors";
           juniorsBtn.className = "bg-blue-500 hover:bg-blue-700 text-white py-1 px-2 rounded text-xs";
-          juniorsBtn.onclick = () => assignTaskToLevel(t.id, "Junior", user.role, users);
+          juniorsBtn.onclick = () => assignTaskToLevel(t.id, "Junior", t.role, users);
 
           const seniorsBtn = document.createElement('button');
           seniorsBtn.textContent = "Assign to Seniors";
           seniorsBtn.className = "bg-purple-500 hover:bg-purple-700 text-white py-1 px-2 rounded text-xs";
-          seniorsBtn.onclick = () => assignTaskToLevel(t.id, "Senior", user.role, users);
+          seniorsBtn.onclick = () => assignTaskToLevel(t.id, "Senior", t.role, users);
 
           const myselfBtn = document.createElement('button');
           myselfBtn.textContent = "Take Myself";
@@ -289,6 +262,15 @@ async function loadDashboard() {
           buttonContainer.appendChild(seniorsBtn);
           buttonContainer.appendChild(myselfBtn);
           li.appendChild(buttonContainer);
+        }
+
+        // Workers can claim unassigned tasks in their dept (optional)
+        if (!t.assigned_to && (!user.level || user.level === "Worker") && normalizeRole(t.role) === normalizeRole(user.role)) {
+          const btn = document.createElement('button');
+          btn.textContent = "Claim Task";
+          btn.className = "bg-green-500 hover:bg-green-700 text-white py-1 px-2 rounded mt-2 text-xs";
+          btn.onclick = () => claimTask(t.id);
+          li.appendChild(btn);
         }
 
         tList.appendChild(li);
@@ -306,7 +288,7 @@ async function loadDashboard() {
   }
 }
 
-// --- Load Time Off Requests (for Heads) ---
+// --- Time Off Requests (Heads view) ---
 async function loadTimeOffRequests(dashboard) {
   try {
     const { data: requests, error } = await client
@@ -327,9 +309,7 @@ async function loadTimeOffRequests(dashboard) {
         const reqDiv = document.createElement('div');
         reqDiv.className = 'mb-3 p-3 bg-gray-50 rounded border';
         
-        const statusClass = req.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                           req.status === 'rejected' ? 'bg-red-100 text-red-800' : 
-                           'bg-yellow-100 text-yellow-800';
+        const statusClass = ['denied','rejected'].includes(req.status) ? 'bg-red-100 text-red-800' : (req.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800');
         
         reqDiv.innerHTML = `
           <div class="flex justify-between items-start">
@@ -355,6 +335,10 @@ async function loadTimeOffRequests(dashboard) {
     }
   } catch (err) {
     console.error('Time off requests loading error:', err);
+    const errBox = document.createElement('div');
+    errBox.className = 'text-red-500 mb-6';
+    errBox.textContent = 'Failed to load time off requests';
+    dashboard.appendChild(errBox);
   }
 }
 
@@ -381,7 +365,7 @@ window.rejectTimeOff = async function(requestId) {
   try {
     const { error } = await client
       .from('time_off_requests')
-      .update({ status: 'rejected' })
+      .update({ status: 'denied' })
       .eq('id', requestId);
     
     if (!error) {
@@ -438,7 +422,7 @@ async function assignTaskToLevel(taskId, level, role, users) {
       alert('Error assigning task: ' + error.message);
     }
   } catch (err) {
-    console.error('Assign task error:', err);
+    console.error('Assign error:', err);
     alert('Failed to assign task');
   }
 }
