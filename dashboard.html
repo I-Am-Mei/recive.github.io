@@ -118,6 +118,11 @@ async function loadDashboard() {
 }
 
 loadDashboard();
+// Password generator function
+function generatePassword(length = 12) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
 
 // Create new user
 document.getElementById('create-user-btn').addEventListener('click', async () => {
@@ -125,31 +130,53 @@ document.getElementById('create-user-btn').addEventListener('click', async () =>
   const newRole = document.getElementById('new-role').value;
   const newPassword = generatePassword();
 
+  const validRoles = ['Head', 'Artist', 'Animator', 'Musician', 'Writer', 'Va'];
   if (!newUsername) {
-    document.getElementById('create-error').textContent = "Username is required!";
-    document.getElementById('create-error').classList.remove('hidden');
+    showError("Username is required!");
+    return;
+  }
+  if (!validRoles.includes(newRole)) {
+    showError("Invalid role selected!");
     return;
   }
 
-  const { data, error } = await client.from('user').insert([{ username: newUsername, password: newPassword, role: newRole }]);
+  try {
+    const { data, error } = await client.from('user').insert([
+      { username: newUsername, password: newPassword, role: newRole }
+    ]);
 
-  if (error) {
-    document.getElementById('create-error').textContent = "Error creating user: " + error.message;
-    document.getElementById('create-error').classList.remove('hidden');
-    document.getElementById('create-success').classList.add('hidden');
-  } else {
-    document.getElementById('create-success').textContent = `User "${newUsername}" created! Password: ${newPassword}`;
-    document.getElementById('create-success').classList.remove('hidden');
-    document.getElementById('create-error').classList.add('hidden');
+    if (error) throw error;
+
+    showSuccess(`User "${newUsername}" created! Password: ${newPassword}`);
     document.getElementById('new-username').value = "";
+  } catch (err) {
+    showError("Error creating user: " + err.message);
   }
 });
+
+// Helper functions for showing messages
+function showError(msg) {
+  const errorEl = document.getElementById('create-error');
+  const successEl = document.getElementById('create-success');
+  errorEl.textContent = msg;
+  errorEl.classList.remove('hidden');
+  successEl.classList.add('hidden');
+}
+
+function showSuccess(msg) {
+  const errorEl = document.getElementById('create-error');
+  const successEl = document.getElementById('create-success');
+  successEl.textContent = msg;
+  successEl.classList.remove('hidden');
+  errorEl.classList.add('hidden');
+}
 
 // Logout
 document.getElementById('logout').addEventListener('click', () => {
   localStorage.removeItem('session');
   window.location.href = 'index.html';
 });
+
 </script>
 </body>
 </html>
