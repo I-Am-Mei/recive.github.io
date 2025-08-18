@@ -1,47 +1,105 @@
+// --- Supabase client setup ---
 const SUPABASE_URL = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// --- Session check ---
 const session = JSON.parse(localStorage.getItem('session'));
 if (!session) window.location.href = 'index.html';
 const user = session.user;
 
-// Generate random password
+// --- Generate random password ---
 function generatePassword(length = 12) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
   return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-// Load dashboard
+// --- Task Creation ---
+document.getElementById('create-task-btn')?.addEventListener('click', async () => {
+  const title = document.getElementById('task-title').value;
+  const desc = document.getElementById('task-desc').value;
+  const role = document.getElementById('task-role').value;
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert([{ 
+      title: title,
+      description: desc,
+      status: 'unassigned',
+      assigned_to: null,
+      role: role,
+      created_at: new Date()
+    }]);
+
+  const msg = document.getElementById('task-msg');
+  if (error) {
+    msg.textContent = error.message;
+    msg.classList.remove('hidden', 'text-green-500');
+    msg.classList.add('text-red-500');
+  } else {
+    msg.textContent = 'Task created!';
+    msg.classList.remove('hidden', 'text-red-500');
+    msg.classList.add('text-green-500');
+    loadTasks();
+  }
+});
+
+// --- Load Tasks ---
+async function loadTasks() {
+  const { data: tasks, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  const container = document.getElementById('tasks-container');
+  container.innerHTML = '';
+
+  if (tasks) {
+    tasks.forEach(task => {
+      const assigned = task.assigned_to ? `Assigned to ${task.assigned_to}` : 'Unassigned';
+      const btn = task.assigned_to ? '' : `<button onclick="claimTask(${task.id})" class="bg-green-500 hover:bg-green-700 text-white py-1 px-2 rounded text-xs ml-2">Claim Task</button>`;
+      container.innerHTML += `
+        <div class="border p-2 mb-2 rounded">
+          <strong>${task.title}</strong> (${task.role})<br>
+          ${task.description}<br>
+          <span class="text-sm">${assigned}</span>
+          ${btn}
+        </div>
+      `;
+    });
+  }
+}
+
+// --- Claim Task ---
+async function claimTask(taskId) {
+  const userId = user.id;
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ assigned_to: userId, status: 'assigned' })
+    .eq('id', taskId);
+
+  if (!error) loadTasks();
+}
+
+// --- Dashboard ---
 async function loadDashboard() {
-  const { data: users } = await client.from('user').select('*');
-  const { data: tasks } = await client.from('tasks').select('*');
-  const { data: timeOff } = await client.from('time_off_requests').select('*');
+  const { data: users } = await supabase.from('user').select('*');
+  const { data: tasks } = await supabase.from('tasks').select('*');
+  const { data: timeOff } = await supabase.from('time_off_requests').select('*');
 
   const dashboard = document.getElementById('dashboard-content');
-  dashboard.innerHTML = ""; // Clear previous content
+  dashboard.innerHTML = "";
 
-  // HEAD & LEAD view
   if (['Head', 'Lead'].includes(user.role)) {
+    if (user.role === 'Head') document.getElementById('create-user-section').classList.remove('hidden');
 
-    // Create User Section only for Head
-    if (user.role === 'Head') {
-      document.getElementById('create-user-section').classList.remove('hidden');
-    }
-
-    // Filter visible users for Leads
-    const visibleUsers = user.role === 'Lead'
-      ? users.filter(u => u.team_id === user.team_id)
-      : users;
-
-    // Group by role/department
+    const visibleUsers = user.role === 'Lead' ? users.filter(u => u.team_id === user.team_id) : users;
     const groupedByRole = {};
-    visibleUsers.forEach(u => {
+    visibleUsers.forEach(u => { 
       if (!groupedByRole[u.role]) groupedByRole[u.role] = [];
       groupedByRole[u.role].push(u);
     });
 
-    // Display each role in collapsible sections
     for (const role in groupedByRole) {
       const section = document.createElement('div');
       section.classList.add('mb-4');
@@ -51,7 +109,6 @@ async function loadDashboard() {
       `;
       const list = section.querySelector('.role-users');
 
-      // Sort: Head -> Lead -> Senior -> Junior
       const sortedUsers = groupedByRole[role].sort((a, b) => {
         const order = ['Head', 'Lead', 'Senior', 'Junior'];
         return order.indexOf(a.level) - order.indexOf(b.level);
@@ -67,14 +124,10 @@ async function loadDashboard() {
       dashboard.appendChild(section);
     }
 
-    // Add collapsible toggle functionality
     document.querySelectorAll('.role-toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
-        btn.nextElementSibling.classList.toggle('hidden');
-      });
+      btn.addEventListener('click', () => btn.nextElementSibling.classList.toggle('hidden'));
     });
 
-    // Time-off requests only for Head
     if (user.role === 'Head') {
       const pendingRequests = timeOff.filter(r => r.status === 'Pending');
       if (pendingRequests.length) {
@@ -98,7 +151,6 @@ async function loadDashboard() {
     }
 
   } else {
-    // Regular user: show personal tasks & time off
     const myTasks = tasks.filter(t => t.assigned_to === user.id);
     const myTimeOff = timeOff.filter(r => r.user_id === user.id);
 
@@ -106,21 +158,13 @@ async function loadDashboard() {
     tasksSection.classList.add('mb-4');
     tasksSection.innerHTML = `<h2 class='text-xl font-semibold mb-2'>My Tasks</h2>`;
     const tList = document.createElement('ul');
-    myTasks.forEach(t => {
-      const li = document.createElement('li');
-      li.textContent = `${t.title} - ${t.status}`;
-      tList.appendChild(li);
-    });
+    myTasks.forEach(t => { const li = document.createElement('li'); li.textContent = `${t.title} - ${t.status}`; tList.appendChild(li); });
     tasksSection.appendChild(tList);
 
     const timeSection = document.createElement('div');
     timeSection.innerHTML = `<h2 class='text-xl font-semibold mb-2'>My Time Off Requests</h2>`;
     const rList = document.createElement('ul');
-    myTimeOff.forEach(r => {
-      const li = document.createElement('li');
-      li.textContent = `${r.start_date} to ${r.end_date} - ${r.status}`;
-      rList.appendChild(li);
-    });
+    myTimeOff.forEach(r => { const li = document.createElement('li'); li.textContent = `${r.start_date} to ${r.end_date} - ${r.status}`; rList.appendChild(li); });
     timeSection.appendChild(rList);
 
     dashboard.appendChild(tasksSection);
@@ -128,68 +172,16 @@ async function loadDashboard() {
   }
 }
 
-// Event listeners
+// --- Event Listeners for Approve/Deny ---
 document.addEventListener('click', async (e) => {
-  // Approve/Deny time off
   if (e.target.classList.contains('approve-btn') || e.target.classList.contains('deny-btn')) {
     const id = e.target.dataset.id;
     const newStatus = e.target.classList.contains('approve-btn') ? 'Approved' : 'Denied';
-    await client.from('time_off_requests').update({ status: newStatus }).eq('id', id);
+    await supabase.from('time_off_requests').update({ status: newStatus }).eq('id', id);
     loadDashboard();
   }
-
-  // Assign task
-  if (e.target.classList.contains('assign-btn')) {
-    const userId = e.target.dataset.user;
-    const taskTitle = prompt("Enter task title:");
-    if (taskTitle) {
-      await client.from('tasks').insert([{ title: taskTitle, assigned_to: userId, status: 'Pending' }]);
-      loadDashboard();
-    }
-  }
 });
 
-// Create new user
-document.getElementById('create-user-btn').addEventListener('click', async () => {
-  const newUsername = document.getElementById('new-username').value.trim();
-  const newRole = document.getElementById('new-role').value;
-  const newPassword = generatePassword();
-
-  const validRoles = ['Head', 'Junior', 'Senior', 'Lead', 'Artist', 'Animator', 'Musician', 'Writer', 'VA'];
-  if (!newUsername) return showError("Username is required!");
-  if (!validRoles.includes(newRole)) return showError("Invalid role selected!");
-
-  try {
-    const { error } = await client.from('user').insert([{ username: newUsername, password: newPassword, role: newRole }]);
-    if (error) throw error;
-    showSuccess(`User "${newUsername}" created! Password: ${newPassword}`);
-    document.getElementById('new-username').value = "";
-    loadDashboard();
-  } catch (err) {
-    showError("Error creating user: " + err.message);
-  }
-});
-
-// Helpers
-function showError(msg) {
-  const errorEl = document.getElementById('create-error');
-  const successEl = document.getElementById('create-success');
-  errorEl.textContent = msg;
-  errorEl.classList.remove('hidden');
-  successEl.classList.add('hidden');
-}
-function showSuccess(msg) {
-  const errorEl = document.getElementById('create-error');
-  const successEl = document.getElementById('create-success');
-  successEl.textContent = msg;
-  successEl.classList.remove('hidden');
-  errorEl.classList.add('hidden');
-}
-
-// Logout
-document.getElementById('logout').addEventListener('click', () => {
-  localStorage.removeItem('session');
-  window.location.href = 'index.html';
-});
-
+// --- Initial load ---
+loadTasks();
 loadDashboard();
