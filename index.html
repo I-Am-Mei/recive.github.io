@@ -61,6 +61,17 @@
         .limit(1)
         .single();
 
+      const response = await fetch(
+        ${supabaseUrl}/rest/v1/user?username=eq."${username}"&password=eq."${password}"&select=id,username,role&limit=1`,
+        {
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`
+          }
+        }
+      );
+
+
       if (error || !data) {
         document.getElementById("error-message").textContent = "Invalid username or password.";
         document.getElementById("error-message").classList.remove("hidden");
