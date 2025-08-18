@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login</title>
-  <!-- Tailwind CDN (good enough for testing) -->
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -43,8 +43,7 @@
 
   <script>
     const SUPABASE_URL = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
-
+    const SUPABASE_ANON_KEY = "YOUR_ANON_KEY"; // replace with your key
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     document.getElementById("login-form").addEventListener("submit", async (e) => {
@@ -65,10 +64,20 @@
         document.getElementById("error-message").textContent = "Invalid username or password.";
         document.getElementById("error-message").classList.remove("hidden");
       } else {
-        alert(`Welcome ${data.username}! Role: ${data.role}`);
-        // TODO: redirect to dashboard.html or similar
+        // Save session and role in localStorage
+        const session = {
+          userId: data.id,
+          username: data.username,
+          role: data.role,
+          loggedIn: true
+        };
+        localStorage.setItem("session", JSON.stringify(session));
+
+        // Redirect to dashboard
+        window.location.href = "dashboard.html";
       }
     });
   </script>
 </body>
 </html>
+
