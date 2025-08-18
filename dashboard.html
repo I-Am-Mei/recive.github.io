@@ -40,17 +40,12 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const session = JSON.parse(localStorage.getItem('session'));
 if (!session) window.location.href = 'index.html';
-
 const user = session.user;
 
 // Generate random password
 function generatePassword(length = 12) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
 async function loadDashboard() {
@@ -85,7 +80,6 @@ async function loadDashboard() {
       section.appendChild(list);
       dashboard.appendChild(section);
     }
-
   } else {
     // Non-Head users: show only their tasks and time off
     const myTasks = tasks.filter(t => t.assigned_to === user.id);
@@ -118,11 +112,6 @@ async function loadDashboard() {
 }
 
 loadDashboard();
-// Password generator function
-function generatePassword(length = 12) {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-}
 
 // Create new user
 document.getElementById('create-user-btn').addEventListener('click', async () => {
@@ -130,7 +119,7 @@ document.getElementById('create-user-btn').addEventListener('click', async () =>
   const newRole = document.getElementById('new-role').value;
   const newPassword = generatePassword();
 
-  const validRoles = ['Head', 'Artist', 'Animator', 'Musician', 'Writer', 'Va'];
+  const validRoles = ['Head', 'Artist', 'Animator', 'Musician', 'Writer', 'VA'];
   if (!newUsername) {
     showError("Username is required!");
     return;
@@ -144,7 +133,6 @@ document.getElementById('create-user-btn').addEventListener('click', async () =>
     const { data, error } = await client.from('user').insert([
       { username: newUsername, password: newPassword, role: newRole }
     ]);
-
     if (error) throw error;
 
     showSuccess(`User "${newUsername}" created! Password: ${newPassword}`);
@@ -176,7 +164,7 @@ document.getElementById('logout').addEventListener('click', () => {
   localStorage.removeItem('session');
   window.location.href = 'index.html';
 });
-
 </script>
+
 </body>
 </html>
