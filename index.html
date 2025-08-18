@@ -64,11 +64,13 @@
         document.getElementById("error-message").textContent = "Invalid username or password.";
         document.getElementById("error-message").classList.remove("hidden");
       } else {
-        // Save session and role in localStorage
+        // Save session with proper `user` object
         const session = {
-          userId: data.id,
-          username: data.username,
-          role: data.role,
+          user: {
+            id: data.id,
+            username: data.username,
+            role: data.role
+          },
           loggedIn: true
         };
         localStorage.setItem("session", JSON.stringify(session));
@@ -80,4 +82,3 @@
   </script>
 </body>
 </html>
-
