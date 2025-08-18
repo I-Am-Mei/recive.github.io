@@ -34,24 +34,16 @@
 </div>
 
 <script>
-// Supabase config
 const SUPABASE_URL = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
+const client = supabase.createClient(SUPABASE_URL, null); // anon key not used; JWT auth
 
 // Get session from localStorage
 const session = JSON.parse(localStorage.getItem('session'));
 if (!session) window.location.href = 'index.html';
-
-// Initialize Supabase client using user's JWT
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  global: {
-    headers: { Authorization: `Bearer ${session.access_token}` }
-  }
-});
-
 const user = session.user;
+const token = session.access_token; // JWT for RLS
 
-// Password generator
+// Helper: generate random password
 function generatePassword(length = 12) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
   return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -59,15 +51,19 @@ function generatePassword(length = 12) {
 
 // Load dashboard
 async function loadDashboard() {
-  const { data: users } = await client.from('user').select('*');
-  const { data: tasks } = await client.from('tasks').select('*');
-  const { data: timeOff } = await client.from('time_off_requests').select('*');
+  // Headers with JWT for RLS
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const { data: users } = await client.from('user').select('*').headers(headers);
+  const { data: tasks } = await client.from('tasks').select('*').headers(headers);
+  const { data: timeOff } = await client.from('time_off_requests').select('*').headers(headers);
 
   const dashboard = document.getElementById('dashboard-content');
 
   if (user.role === 'Head') {
     document.getElementById('create-user-section').classList.remove('hidden');
 
+    // Group users by role
     const grouped = {};
     users.forEach(u => {
       if (!grouped[u.role]) grouped[u.role] = [];
@@ -90,6 +86,7 @@ async function loadDashboard() {
     }
 
   } else {
+    // Non-Head users: show only their tasks and time off
     const myTasks = tasks.filter(t => t.assigned_to === user.id);
     const myTimeOff = timeOff.filter(r => r.user_id === user.id);
 
@@ -138,9 +135,10 @@ document.getElementById('create-user-btn').addEventListener('click', async () =>
   }
 
   try {
+    const headers = { Authorization: `Bearer ${token}` };
     const { data, error } = await client.from('user').insert([
       { username: newUsername, password: newPassword, role: newRole }
-    ]);
+    ]).headers(headers);
 
     if (error) throw error;
 
@@ -151,7 +149,7 @@ document.getElementById('create-user-btn').addEventListener('click', async () =>
   }
 });
 
-// Message helpers
+// Helper functions for showing messages
 function showError(msg) {
   const errorEl = document.getElementById('create-error');
   const successEl = document.getElementById('create-success');
