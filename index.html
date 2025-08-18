@@ -1,174 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Supabase Table Login</title>
-  <link href="/dist/output.css" rel="stylesheet"> <!-- Use Tailwind built locally -->
-  <style>
-    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <!-- Tailwind CDN (good enough for testing) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 flex items-center justify-center p-4">
-  <div class="w-full max-w-md">
-    <div id="card" class="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden">
-      <div class="px-6 py-5 bg-white/60 backdrop-blur border-b border-slate-100">
-        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          Sign in
-        </h1>
-        <p class="text-slate-500 text-sm mt-1">Authenticate using your entry in the <code class="px-1 py-0.5 rounded bg-slate-100 text-slate-700">user</code> table.</p>
+<body class="flex items-center justify-center h-screen bg-gray-100">
+  <div class="w-full max-w-xs">
+    <form id="login-form" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <h2 class="text-center text-2xl font-bold mb-4">Login</h2>
+
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+          Username
+        </label>
+        <input id="username" type="text" placeholder="Username"
+          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
       </div>
 
-      <form id="loginForm" class="px-6 py-6 space-y-4">
-        <div>
-          <label for="username" class="block text-sm font-medium text-slate-700">Username</label>
-          <input id="username" name="username" type="text" required
-                 class="mt-1 w-full rounded-xl border-slate-300 focus:border-brand-500 focus:ring-brand-500 shadow-sm" placeholder="yourname">
-        </div>
-        <div>
-          <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
-          <input id="password" name="password" type="password" required
-                 class="mt-1 w-full rounded-xl border-slate-300 focus:border-brand-500 focus:ring-brand-500 shadow-sm" placeholder="••••••••">
-        </div>
+      <div class="mb-6">
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+          Password
+        </label>
+        <input id="password" type="password" placeholder="********"
+          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline">
+      </div>
 
-        <div id="error" class="hidden rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm p-3"></div>
-
-        <button id="submitBtn" type="submit"
-                class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 text-white font-semibold py-2.5 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed">
-          <span id="btnText">Sign in</span>
-          <svg id="spinner" class="hidden animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-          </svg>
+      <div class="flex items-center justify-between">
+        <button type="submit"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+          Sign In
         </button>
-      </form>
-
-      <div id="dashboard" class="hidden">
-        <div class="px-6 py-6 space-y-4">
-          <div class="flex items-start justify-between">
-            <div>
-              <h2 id="welcome" class="text-xl font-semibold text-slate-900"></h2>
-              <p id="role" class="text-slate-600 text-sm"></p>
-            </div>
-            <button id="logoutBtn" class="text-sm px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50">Logout</button>
-          </div>
-
-          <div class="rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 text-sm font-semibold text-slate-700">Your account</div>
-            <div class="p-4 grid grid-cols-1 gap-3 text-sm">
-              <div class="flex items-center justify-between"><span class="text-slate-500">ID</span><span id="uid" class="font-mono text-slate-800"></span></div>
-              <div class="flex items-center justify-between"><span class="text-slate-500">Username</span><span id="uname" class="text-slate-800"></span></div>
-              <div class="flex items-center justify-between"><span class="text-slate-500">Role</span><span id="urole" class="text-slate-800"></span></div>
-              <div class="flex items-center justify-between"><span class="text-slate-500">Created</span><span id="created" class="text-slate-800"></span></div>
-            </div>
-          </div>
-        </div>
       </div>
-    </div>
+
+      <p id="error-message" class="text-red-500 text-xs italic mt-4 hidden"></p>
+    </form>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const SUPABASE_URL = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg';
+    const SUPABASE_URL = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const form = document.getElementById('loginForm');
-    const errorEl = document.getElementById('error');
-    const btn = document.getElementById('submitBtn');
-    const spinner = document.getElementById('spinner');
-    const btnText = document.getElementById('btnText');
-    const dashboard = document.getElementById('dashboard');
-
-    const welcome = document.getElementById('welcome');
-    const roleEl = document.getElementById('role');
-    const uidEl = document.getElementById('uid');
-    const unameEl = document.getElementById('uname');
-    const uroleEl = document.getElementById('urole');
-    const createdEl = document.getElementById('created');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    const SESSION_KEY = 'demo_user_session';
-
-    function setLoading(loading) {
-      btn.disabled = loading;
-      spinner.classList.toggle('hidden', !loading);
-      btnText.textContent = loading ? 'Signing in…' : 'Sign in';
-    }
-
-    function showError(msg) {
-      errorEl.textContent = msg;
-      errorEl.classList.remove('hidden');
-    }
-
-    function hideError() {
-      errorEl.classList.add('hidden');
-      errorEl.textContent = '';
-    }
-
-    function showDashboard(user) {
-      form.classList.add('hidden');
-      dashboard.classList.remove('hidden');
-
-      welcome.textContent = `Welcome, ${user.username}!`;
-      roleEl.textContent = 'You are signed in.';
-      uidEl.textContent = user.id;
-      unameEl.textContent = user.username;
-      uroleEl.textContent = user.role;
-      createdEl.textContent = user.created_at ? new Date(user.created_at).toLocaleString() : '—';
-    }
-
-    function logout() {
-      localStorage.removeItem(SESSION_KEY);
-      dashboard.classList.add('hidden');
-      form.classList.remove('hidden');
-      document.getElementById('password').value = '';
-    }
-
-    logoutBtn?.addEventListener('click', logout);
-
-    try {
-      const cached = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-      if (cached && cached.username) {
-        showDashboard(cached);
-      }
-    } catch {}
-
-    form.addEventListener('submit', async (e) => {
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      hideError();
-      setLoading(true);
 
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-      if (!username || !password) {
-        setLoading(false);
-        return showError('Please enter both username and password.');
-      }
+      let { data, error } = await client
+        .from("user")
+        .select("id, username, password, role")
+        .eq("username", username)
+        .eq("password", password)
+        .limit(1)
+        .single();
 
-      try {
-        const { data, error } = await supabase
-          .from('user')
-          .select('is, username, password, role, created_at')
-          .eq('username', username)
-          .eq('password', password)
-          .limit(1)
-          .maybeSingle();
-
-        if (error) throw error;
-        if (!data) {
-          showError('Invalid username or password.');
-        } else {
-          localStorage.setItem(SESSION_KEY, JSON.stringify(data));
-          showDashboard(data);
-        }
-      } catch (err) {
-        console.error(err);
-        showError('Sign-in failed. Check your Supabase policies and try again.');
-      } finally {
-        setLoading(false);
+      if (error || !data) {
+        document.getElementById("error-message").textContent = "Invalid username or password.";
+        document.getElementById("error-message").classList.remove("hidden");
+      } else {
+        alert(`Welcome ${data.username}! Role: ${data.role}`);
+        // TODO: redirect to dashboard.html or similar
       }
     });
   </script>
