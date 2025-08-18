@@ -15,6 +15,15 @@
 </div>
 
 <div id="dashboard-content"></div>
+  
+<!-- Add inside body, above dashboard-content maybe -->
+<div id="timeoff-section" class="bg-white shadow-md rounded px-6 pt-4 pb-6 mb-4 hidden">
+  <h3 class="text-xl font-bold mb-3">Request Time Off</h3>
+  <input id="timeoff-start" type="date" class="border rounded w-full py-2 px-3 mb-2">
+  <input id="timeoff-end" type="date" class="border rounded w-full py-2 px-3 mb-2">
+  <button id="request-timeoff-btn" class="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded">Submit Request</button>
+  <p id="timeoff-msg" class="text-xs mt-2 hidden"></p>
+</div>
 
 <!-- Create User Modal/Section -->
 <div id="create-user-section" class="bg-white shadow-md rounded px-6 pt-4 pb-6 mb-4 hidden">
