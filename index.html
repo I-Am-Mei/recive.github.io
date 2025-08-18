@@ -2,82 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
-  <!-- Tailwind CDN (good enough for testing) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Supabase client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>Supabase Login Canvas</title>
 </head>
-<body class="flex items-center justify-center h-screen bg-gray-100">
-  <div class="w-full max-w-xs">
-    <form id="login-form" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-      <h2 class="text-center text-2xl font-bold mb-4">Login</h2>
-
-      <div class="mb-4">
-        <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
-          Username
-        </label>
-        <input id="username" type="text" placeholder="Username"
-          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-      </div>
-
-      <div class="mb-6">
-        <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
-          Password
-        </label>
-        <input id="password" type="password" placeholder="********"
-          class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline">
-      </div>
-
-      <div class="flex items-center justify-between">
-        <button type="submit"
-          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-          Sign In
-        </button>
-      </div>
-
-      <p id="error-message" class="text-red-500 text-xs italic mt-4 hidden"></p>
-    </form>
-  </div>
+<body>
+  <canvas id="loginCanvas" width="400" height="300" style="border:1px solid #000000;"></canvas>
 
   <script>
-    const SUPABASE_URL = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
+    const canvas = document.getElementById('loginCanvas');
+    const ctx = canvas.getContext('2d');
 
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Draw form labels
+    ctx.font = '16px Arial';
+    ctx.fillText('Username:', 50, 50);
+    ctx.fillText('Password:', 50, 100);
 
-    document.getElementById("login-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
+    // Supabase config
+    const supabaseUrl = 'https://lrmfhusbakkgpjjdjdvg.supabase.co';
+    const supabaseAnonKey = 'YOUR_ANON_KEY_HERE';
 
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
+    // Function to simulate login
+    async function login(username, password) {
+      const query = `${supabaseUrl}/rest/v1/user?username=eq."${username}"&password=eq."${password}"&select=id,username,role&limit=1`;
 
-      let { data, error } = await client
-        .from("user")
-        .select("id, username, password, role")
-        .eq("username", username)
-        .eq("password", password)
-        .limit(1)
-        .single();
-
-      const response = await fetch(
-        ${supabaseUrl}/rest/v1/user?username=eq."${username}"&password=eq."${password}"&select=id,username,role&limit=1`,
-        {
+      try {
+        const response = await fetch(query, {
           headers: {
             apikey: supabaseAnonKey,
             Authorization: `Bearer ${supabaseAnonKey}`
           }
-        }
-      );
+        });
+        const data = await response.json();
+        return data;
+      } catch (err) {
+        console.error(err);
+        return [];
+      }
+    }
 
-
-      if (error || !data) {
-        document.getElementById("error-message").textContent = "Invalid username or password.";
-        document.getElementById("error-message").classList.remove("hidden");
+    // Example login attempt (username and password both '1')
+    login('1', '1').then(data => {
+      if (data.length > 0) {
+        ctx.fillStyle = 'green';
+        ctx.fillText(`Welcome ${data[0].username}! Role: ${data[0].role}`, 50, 200);
       } else {
-        alert(`Welcome ${data.username}! Role: ${data.role}`);
-        // TODO: redirect to dashboard.html or similar
+        ctx.fillStyle = 'red';
+        ctx.fillText('Invalid username or password.', 50, 200);
       }
     });
   </script>
