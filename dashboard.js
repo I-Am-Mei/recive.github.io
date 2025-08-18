@@ -19,60 +19,86 @@ async function loadDashboard() {
   const { data: timeOff } = await client.from('time_off_requests').select('*');
 
   const dashboard = document.getElementById('dashboard-content');
+  dashboard.innerHTML = ""; // Clear previous content
 
-  // Show Head or Lead options
-  if (user.role === 'Head' || user.role === 'Lead') {
-    // Show create user section only for Head
+  // HEAD & LEAD view
+  if (['Head', 'Lead'].includes(user.role)) {
+
+    // Create User Section only for Head
     if (user.role === 'Head') {
       document.getElementById('create-user-section').classList.remove('hidden');
     }
 
-    // Filter users for Lead to only their team
+    // Filter visible users for Leads
     const visibleUsers = user.role === 'Lead'
-      ? users.filter(u => u.team_id === user.team_id) // Assuming each user has a team_id
+      ? users.filter(u => u.team_id === user.team_id)
       : users;
 
-    // Group users by role/level
-    const grouped = {};
+    // Group by role/department
+    const groupedByRole = {};
     visibleUsers.forEach(u => {
-      if (!grouped[u.level]) grouped[u.level] = [];
-      grouped[u.level].push(u);
+      if (!groupedByRole[u.role]) groupedByRole[u.role] = [];
+      groupedByRole[u.role].push(u);
     });
 
-    for (const level in grouped) {
+    // Display each role in collapsible sections
+    for (const role in groupedByRole) {
       const section = document.createElement('div');
-      section.classList.add('mb-6');
-      section.innerHTML = `<h2 class='text-xl font-semibold mb-2'>${level}</h2>`;
-      const list = document.createElement('ul');
-      grouped[level].forEach(u => {
+      section.classList.add('mb-4');
+      section.innerHTML = `
+        <button class="role-toggle w-full text-left bg-gray-200 px-2 py-1 rounded">${role}</button>
+        <ul class="role-users hidden list-disc pl-6 mt-2"></ul>
+      `;
+      const list = section.querySelector('.role-users');
+
+      // Sort: Head -> Lead -> Senior -> Junior
+      const sortedUsers = groupedByRole[role].sort((a, b) => {
+        const order = ['Head', 'Lead', 'Senior', 'Junior'];
+        return order.indexOf(a.level) - order.indexOf(b.level);
+      });
+
+      sortedUsers.forEach(u => {
         const li = document.createElement('li');
-        li.classList.add('mb-1');
-        li.innerHTML = `${u.username} - Password: ${u.password} <button class='bg-blue-500 text-white px-2 py-1 rounded ml-2 assign-btn' data-user='${u.id}'>Assign Task</button>`;
+        li.innerHTML = `${u.username} - Password: ${u.password} 
+          ${['Head', 'Lead'].includes(user.role) ? `<button class='assign-btn bg-blue-500 text-white px-2 py-1 rounded ml-2' data-user='${u.id}'>Assign Task</button>` : ''}`;
         list.appendChild(li);
       });
-      section.appendChild(list);
+
       dashboard.appendChild(section);
     }
 
-    // Show pending time-off requests only for Head
+    // Add collapsible toggle functionality
+    document.querySelectorAll('.role-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.nextElementSibling.classList.toggle('hidden');
+      });
+    });
+
+    // Time-off requests only for Head
     if (user.role === 'Head') {
       const pendingRequests = timeOff.filter(r => r.status === 'Pending');
-      const timeOffSection = document.createElement('div');
-      timeOffSection.classList.add('mb-6');
-      timeOffSection.innerHTML = `<h2 class='text-xl font-semibold mb-2'>Pending Time Off Requests</h2>`;
-      const rList = document.createElement('ul');
-      pendingRequests.forEach(r => {
-        const li = document.createElement('li');
-        li.innerHTML = `${r.user_id} - ${r.start_date} to ${r.end_date} 
-          <button class='approve-btn' data-id='${r.id}'>Approve</button>
-          <button class='deny-btn' data-id='${r.id}'>Deny</button>`;
-        rList.appendChild(li);
-      });
-      timeOffSection.appendChild(rList);
-      dashboard.appendChild(timeOffSection);
+      if (pendingRequests.length) {
+        const timeOffSection = document.createElement('div');
+        timeOffSection.classList.add('mb-6');
+        timeOffSection.innerHTML = `<h2 class='text-xl font-semibold mb-2'>Pending Time Off Requests</h2>`;
+        const rList = document.createElement('ul');
+
+        pendingRequests.forEach(r => {
+          const requestUser = users.find(u => u.id === r.user_id);
+          const li = document.createElement('li');
+          li.innerHTML = `${requestUser?.username || r.user_id} - ${r.start_date} to ${r.end_date} 
+            <button class='approve-btn bg-green-500 text-white px-2 py-1 rounded ml-1' data-id='${r.id}'>Approve</button>
+            <button class='deny-btn bg-red-500 text-white px-2 py-1 rounded ml-1' data-id='${r.id}'>Deny</button>`;
+          rList.appendChild(li);
+        });
+
+        timeOffSection.appendChild(rList);
+        dashboard.appendChild(timeOffSection);
+      }
     }
+
   } else {
-    // Regular users: show only their tasks and time off
+    // Regular user: show personal tasks & time off
     const myTasks = tasks.filter(t => t.assigned_to === user.id);
     const myTimeOff = timeOff.filter(r => r.user_id === user.id);
 
@@ -102,8 +128,9 @@ async function loadDashboard() {
   }
 }
 
-// Event listeners for approving/denying time off
+// Event listeners
 document.addEventListener('click', async (e) => {
+  // Approve/Deny time off
   if (e.target.classList.contains('approve-btn') || e.target.classList.contains('deny-btn')) {
     const id = e.target.dataset.id;
     const newStatus = e.target.classList.contains('approve-btn') ? 'Approved' : 'Denied';
@@ -111,7 +138,7 @@ document.addEventListener('click', async (e) => {
     loadDashboard();
   }
 
-  // Assign task button
+  // Assign task
   if (e.target.classList.contains('assign-btn')) {
     const userId = e.target.dataset.user;
     const taskTitle = prompt("Enter task title:");
@@ -122,8 +149,6 @@ document.addEventListener('click', async (e) => {
   }
 });
 
-loadDashboard();
-
 // Create new user
 document.getElementById('create-user-btn').addEventListener('click', async () => {
   const newUsername = document.getElementById('new-username').value.trim();
@@ -131,29 +156,21 @@ document.getElementById('create-user-btn').addEventListener('click', async () =>
   const newPassword = generatePassword();
 
   const validRoles = ['Head', 'Junior', 'Senior', 'Lead', 'Artist', 'Animator', 'Musician', 'Writer', 'VA'];
-  if (!newUsername) {
-    showError("Username is required!");
-    return;
-  }
-  if (!validRoles.includes(newRole)) {
-    showError("Invalid role selected!");
-    return;
-  }
+  if (!newUsername) return showError("Username is required!");
+  if (!validRoles.includes(newRole)) return showError("Invalid role selected!");
 
   try {
-    const { data, error } = await client.from('user').insert([
-      { username: newUsername, password: newPassword, role: newRole }
-    ]);
+    const { error } = await client.from('user').insert([{ username: newUsername, password: newPassword, role: newRole }]);
     if (error) throw error;
-
     showSuccess(`User "${newUsername}" created! Password: ${newPassword}`);
     document.getElementById('new-username').value = "";
+    loadDashboard();
   } catch (err) {
     showError("Error creating user: " + err.message);
   }
 });
 
-// Helper functions
+// Helpers
 function showError(msg) {
   const errorEl = document.getElementById('create-error');
   const successEl = document.getElementById('create-success');
@@ -174,3 +191,5 @@ document.getElementById('logout').addEventListener('click', () => {
   localStorage.removeItem('session');
   window.location.href = 'index.html';
 });
+
+loadDashboard();
