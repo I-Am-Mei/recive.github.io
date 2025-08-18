@@ -35,32 +35,33 @@
 
 <script>
 const SUPABASE_URL = "https://lrmfhusbakkgpjjdjdvg.supabase.co";
-const client = supabase.createClient(SUPABASE_URL, null); // anon key not used; JWT auth
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybWZodXNiYWtrZ3BqamRqZHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyOTQzNTUsImV4cCI6MjA3MDg3MDM1NX0.bY9ILZaTNELGjRvu7ovcKA2moqnOhAb_8oN2QhIigPg";
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Get session from localStorage
 const session = JSON.parse(localStorage.getItem('session'));
 if (!session) window.location.href = 'index.html';
-const user = session.user;
-const token = session.access_token; // JWT for RLS
 
-// Helper: generate random password
+const user = session.user;
+
+// Generate random password
 function generatePassword(length = 12) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
 }
 
-// Load dashboard
 async function loadDashboard() {
-  // Headers with JWT for RLS
-  const headers = { Authorization: `Bearer ${token}` };
-
-  const { data: users } = await client.from('user').select('*').headers(headers);
-  const { data: tasks } = await client.from('tasks').select('*').headers(headers);
-  const { data: timeOff } = await client.from('time_off_requests').select('*').headers(headers);
+  const { data: users } = await client.from('user').select('*');
+  const { data: tasks } = await client.from('tasks').select('*');
+  const { data: timeOff } = await client.from('time_off_requests').select('*');
 
   const dashboard = document.getElementById('dashboard-content');
 
   if (user.role === 'Head') {
+    // Show create user section
     document.getElementById('create-user-section').classList.remove('hidden');
 
     // Group users by role
@@ -117,6 +118,11 @@ async function loadDashboard() {
 }
 
 loadDashboard();
+// Password generator function
+function generatePassword(length = 12) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
 
 // Create new user
 document.getElementById('create-user-btn').addEventListener('click', async () => {
@@ -135,10 +141,9 @@ document.getElementById('create-user-btn').addEventListener('click', async () =>
   }
 
   try {
-    const headers = { Authorization: `Bearer ${token}` };
     const { data, error } = await client.from('user').insert([
       { username: newUsername, password: newPassword, role: newRole }
-    ]).headers(headers);
+    ]);
 
     if (error) throw error;
 
@@ -171,7 +176,7 @@ document.getElementById('logout').addEventListener('click', () => {
   localStorage.removeItem('session');
   window.location.href = 'index.html';
 });
-</script>
 
+</script>
 </body>
 </html>
