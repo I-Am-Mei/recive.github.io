@@ -43,7 +43,29 @@
     <p id="create-error" class="text-red-500 text-xs italic mt-2 hidden"></p>
     <p id="create-success" class="text-green-500 text-xs italic mt-2 hidden"></p>
   </div>
-
+  <!-- Create Task Section -->
+  <div id="create-task-section" class="bg-white shadow-md rounded px-6 pt-4 pb-6 mb-4">
+    <h3 class="text-xl font-bold mb-3">Create New Task</h3>
+    <input id="task-title" type="text" placeholder="Title" class="border rounded w-full py-2 px-3 mb-2">
+    <textarea id="task-desc" placeholder="Description" class="border rounded w-full py-2 px-3 mb-2"></textarea>
+    <select id="task-role" class="border rounded w-full py-2 px-3 mb-2">
+      <option value="Animator">Animator</option>
+      <option value="Artist">Artist</option>
+      <option value="Musician">Musician</option>
+      <option value="Writer">Writer</option>
+      <option value="VA">VA</option>
+    </select>
+    <button id="create-task-btn" class="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded">Create Task</button>
+    <p id="task-msg" class="text-xs mt-2 hidden"></p>
+  </div>
+  
+  <!-- Tasks List -->
+  <div id="tasks-list" class="bg-white shadow-md rounded px-6 pt-4 pb-6 mb-4">
+    <h3 class="text-xl font-bold mb-3">Tasks</h3>
+    <div id="tasks-container"></div>
+  </div>
+  
+  
   <script src="dashboard.js"></script> 
 
 </body>
