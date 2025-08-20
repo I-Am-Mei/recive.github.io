@@ -210,8 +210,9 @@ async function loadDashboard() {
       visibleUsers = users ? users.filter(u => u.role === user.role) : [];
       visibleTasks = tasks ? tasks.filter(t => t.role === user.role) : [];
     } else {
+      // Regular workers see themselves and ALL tasks assigned to them OR tasks for their role
       visibleUsers = users ? users.filter(u => u.id === user.id) : [];
-      visibleTasks = tasks ? tasks.filter(t => t.assigned_to === user.id) : [];
+      visibleTasks = tasks ? tasks.filter(t => t.assigned_to === user.id || t.role === user.role) : [];
     }
 
     // --- People Section ---
@@ -250,26 +251,46 @@ async function loadDashboard() {
         li.innerHTML = `
           <div class="mb-2">
             <strong>${t.title}</strong>
-            <span class="ml-2 px-2 py-1 text-xs rounded ${t.status === 'assigned' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${t.status}</span>
+            <span class="ml-2 px-2 py-1 text-xs rounded ${t.status === 'assigned' ? 'bg-blue-100 text-blue-800' : t.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${t.status}</span>
           </div>
           <p class="text-gray-600 text-sm mb-2">${t.description}</p>
           <p class="text-xs text-gray-500">Department: ${t.role} | Assigned to: ${assignedText}</p>
         `;
 
-        // Head can directly claim
+        // Add action buttons container
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'mt-2 flex flex-wrap gap-2';
+
+        // Head can directly claim unassigned tasks
         if (!t.assigned_to && user.role === "Head") {
           const btn = document.createElement('button');
           btn.textContent = "Claim Task";
-          btn.className = "bg-green-500 hover:bg-green-700 text-white py-1 px-2 rounded mt-2 text-xs";
+          btn.className = "bg-green-500 hover:bg-green-700 text-white py-1 px-2 rounded text-xs";
           btn.onclick = () => claimTask(t.id);
-          li.appendChild(btn);
+          actionsDiv.appendChild(btn);
+        }
+
+        // Workers can claim unassigned tasks in their department or mark assigned tasks as complete
+        if (user.role !== "Head" && user.level !== "Lead") {
+          if (!t.assigned_to && t.role === user.role) {
+            // Can claim unassigned tasks in their department
+            const claimBtn = document.createElement('button');
+            claimBtn.textContent = "Claim Task";
+            claimBtn.className = "bg-green-500 hover:bg-green-700 text-white py-1 px-2 rounded text-xs";
+            claimBtn.onclick = () => claimTask(t.id);
+            actionsDiv.appendChild(claimBtn);
+          } else if (t.assigned_to === user.id && t.status === 'assigned') {
+            // Can mark their assigned tasks as complete
+            const completeBtn = document.createElement('button');
+            completeBtn.textContent = "Mark Complete";
+            completeBtn.className = "bg-purple-500 hover:bg-purple-700 text-white py-1 px-2 rounded text-xs";
+            completeBtn.onclick = () => completeTask(t.id);
+            actionsDiv.appendChild(completeBtn);
+          }
         }
 
         // Leads can distribute tasks in their department
         if (!t.assigned_to && user.level === "Lead" && t.role === user.role) {
-          const buttonContainer = document.createElement('div');
-          buttonContainer.className = 'mt-2 flex flex-wrap gap-2';
-
           const juniorsBtn = document.createElement('button');
           juniorsBtn.textContent = "Assign to Juniors";
           juniorsBtn.className = "bg-blue-500 hover:bg-blue-700 text-white py-1 px-2 rounded text-xs";
@@ -277,7 +298,7 @@ async function loadDashboard() {
 
           const seniorsBtn = document.createElement('button');
           seniorsBtn.textContent = "Assign to Seniors";
-          seniorsBtn.className = "bg-purple-500 hover:bg-purple-700 text-white py-1 px-2 rounded text-xs";
+          seniorsBtn.className = "bg-indigo-500 hover:bg-indigo-700 text-white py-1 px-2 rounded text-xs";
           seniorsBtn.onclick = () => assignTaskToLevel(t.id, "Senior", user.role, users);
 
           const myselfBtn = document.createElement('button');
@@ -285,10 +306,14 @@ async function loadDashboard() {
           myselfBtn.className = "bg-green-500 hover:bg-green-700 text-white py-1 px-2 rounded text-xs";
           myselfBtn.onclick = () => claimTask(t.id);
 
-          buttonContainer.appendChild(juniorsBtn);
-          buttonContainer.appendChild(seniorsBtn);
-          buttonContainer.appendChild(myselfBtn);
-          li.appendChild(buttonContainer);
+          actionsDiv.appendChild(juniorsBtn);
+          actionsDiv.appendChild(seniorsBtn);
+          actionsDiv.appendChild(myselfBtn);
+        }
+
+        // Only add actions div if it has buttons
+        if (actionsDiv.children.length > 0) {
+          li.appendChild(actionsDiv);
         }
 
         tList.appendChild(li);
@@ -339,7 +364,7 @@ async function loadTimeOffRequests(dashboard) {
               <p class="text-sm text-gray-600 mt-1">${req.start_date} to ${req.end_date}</p>
               <p class="text-sm text-gray-500">Reason: ${req.reason}</p>
             </div>
-            <div class="flex space-x-2" id="request-actions-${req.id}">
+            <div class="flex space-x-2">
               ${req.status === 'pending' ? `
                 <button onclick="approveTimeOff(${req.id})" class="bg-green-500 hover:bg-green-700 text-white py-1 px-2 rounded text-xs">Approve</button>
                 <button onclick="rejectTimeOff(${req.id})" class="bg-red-500 hover:bg-red-700 text-white py-1 px-2 rounded text-xs">Reject</button>
@@ -359,7 +384,7 @@ async function loadTimeOffRequests(dashboard) {
 }
 
 // --- Time Off Approval Functions ---
-window.approveTimeOff = async function(requestId) {
+async function approveTimeOff(requestId) {
   try {
     const { error } = await client
       .from('time_off_requests')
@@ -375,9 +400,9 @@ window.approveTimeOff = async function(requestId) {
     console.error('Approve error:', err);
     alert('Failed to approve request');
   }
-};
+}
 
-window.rejectTimeOff = async function(requestId) {
+async function rejectTimeOff(requestId) {
   try {
     const { error } = await client
       .from('time_off_requests')
@@ -393,7 +418,30 @@ window.rejectTimeOff = async function(requestId) {
     console.error('Reject error:', err);
     alert('Failed to reject request');
   }
-};
+}
+
+// Make functions globally available
+window.approveTimeOff = approveTimeOff;
+window.rejectTimeOff = rejectTimeOff;
+
+// --- Complete Task ---
+async function completeTask(taskId) {
+  try {
+    const { error } = await client
+      .from('tasks')
+      .update({ status: 'completed' })
+      .eq('id', taskId);
+
+    if (!error) {
+      loadDashboard();
+    } else {
+      alert('Error completing task: ' + error.message);
+    }
+  } catch (err) {
+    console.error('Complete task error:', err);
+    alert('Failed to complete task');
+  }
+}
 
 // --- Claim Task ---
 async function claimTask(taskId) {
